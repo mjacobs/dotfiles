@@ -125,6 +125,7 @@ dmypy.json
 # Nested git repos - track the dir, not the .git internals
 .tmux/.git/
 .oh-my-zsh/.git/
+.config/nvim/pack/
 
 # Cache and state
 .cache/
