@@ -32,7 +32,7 @@ git --git-dir=$HOME/.dotfiles --work-tree=$HOME <command>
 - `~/.config/aliases.sh` → Custom aliases including `dotfiles` (sourced by .zshrc)
 - `~/.config/nvim/` → Neovim config (LazyVim-based)
 - `~/.gitconfig` → Git aliases (`lg`, `l1-l5`), delta pager, gh credential helper
-- `~/.tmux.conf.local` → Tmux customizations (symlinked from `~/.tmux/.tmux.conf.local`)
+- `~/.tmux.conf` → Tmux config with TPM and tmux-powerkit (catppuccin mocha theme)
 - `~/.secrets` → API keys (NOT tracked - create manually on new machines)
 
 ### Oh-My-Zsh Plugins (in order)
@@ -73,8 +73,9 @@ dotfiles checkout
 # Hide untracked files
 dotfiles config status.showUntrackedFiles no
 
-# Set up tmux symlink (after cloning gpakosz/.tmux)
-ln -sf ~/.tmux.conf.local ~/.tmux/.tmux.conf.local
+# Install TPM and tmux plugins
+git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
+# Then in tmux, press prefix + I to install plugins
 
 # Create ~/.secrets with your API keys
 ```
