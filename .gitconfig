@@ -9,7 +9,7 @@
   l3 = !git log --oneline | grep
   l4 = log -p -1
   l5 = "!f() { \
-    git log --after=\"$(date -j -v-$1d +%Y-%m-%d)\" --oneline; \
+    git log --after=\"$(date -d \"$1 days ago\" +%Y-%m-%d)\" --oneline; \
     }; f"
 
 [user]

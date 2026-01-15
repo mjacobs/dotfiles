@@ -16,16 +16,6 @@ bindkey '^[OB' history-substring-search-down
 bindkey "$terminfo[kcuu1]" history-substring-search-up
 bindkey "$terminfo[kcud1]" history-substring-search-down
 
-# zstyle ':completion:*' menu select
-function history-beginning-search-backward-end-of-line {
-  local original_buffer_length=$#BUFFER
-  zle history-beginning-search-backward
-  if ((original_buffer_length == 0)); then
-    CURSOR=$#BUFFER
-  fi
-}
-zle -N history-beginning-search-backward-end-of-line
-bindkey "^[[A" history-beginning-search-backward-end-of-line
 
 ################################################################################
 # oh-my-zsh plugins
@@ -95,16 +85,18 @@ if [ -f "${HOME}/.config/aliases.sh" ]; then . "${HOME}/.config/aliases.sh"; fi
 ################################################################################
 # homebrew
 ################################################################################
-eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+[[ -f /home/linuxbrew/.linuxbrew/bin/brew ]] && eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 
 ################################################################################
-# shell / starship / posh!
+# prompt (oh-my-posh)
 ################################################################################
-eval "$(oh-my-posh init zsh --config ${HOME}/dev/productivity/oh-my-posh/themes/kushal.omp.json)"
+if command -v oh-my-posh &>/dev/null; then
+  eval "$(oh-my-posh init zsh --config ${HOME}/dev/productivity/oh-my-posh/themes/kushal.omp.json)"
+fi
 
 
 ################################################################################
-# API Keys (loaded from ~/.secrets - not tracked by chezmoi)
+# API Keys (loaded from ~/.secrets - not tracked in dotfiles repo)
 ################################################################################
 [[ -f "${HOME}/.secrets" ]] && source "${HOME}/.secrets"
 
@@ -114,7 +106,6 @@ eval "$(oh-my-posh init zsh --config ${HOME}/dev/productivity/oh-my-posh/themes/
 
 
 [ ! -f "$HOME/.x-cmd.root/X" ] || . "$HOME/.x-cmd.root/X" # boot up x-cmd.
-export PATH="$HOME/.local/bin:$PATH"
 
 # pnpm
 export PNPM_HOME="$HOME/.local/share/pnpm"
@@ -122,4 +113,3 @@ case ":$PATH:" in
   *":$PNPM_HOME:"*) ;;
   *) export PATH="$PNPM_HOME:$PATH" ;;
 esac
-# pnpm end

@@ -14,7 +14,7 @@ fi
 alias ff='fastfetch'
 
 alias cat='bat'
-alias mcat='/home/linuxbrew/.linuxbrew/bin/mcat'
+[[ -f /home/linuxbrew/.linuxbrew/bin/mcat ]] && alias mcat='/home/linuxbrew/.linuxbrew/bin/mcat'
 
 alias vim='nvim'
 
@@ -31,4 +31,4 @@ alias l2='ll --tree --depth 2'
 
 alias catt="glow"
 alias catp="glow -p"
-alias st=$HOME/dev/private/rp/SillyTavern/start.sh
+[[ -f "$HOME/dev/private/rp/SillyTavern/start.sh" ]] && alias st="$HOME/dev/private/rp/SillyTavern/start.sh"
