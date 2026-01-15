@@ -30,7 +30,9 @@ git --git-dir=$HOME/.dotfiles --work-tree=$HOME <command>
 - `~/.zshrc` → oh-my-zsh plugins, GPG/SSH agent setup, homebrew, oh-my-posh prompt
 - `~/.zshenv` → PATH additions (`.local/bin`, JetBrains, gcloud, bun, cargo)
 - `~/.config/aliases.sh` → Custom aliases including `dotfiles` (sourced by .zshrc)
+- `~/.config/nvim/` → Neovim config (LazyVim-based)
 - `~/.gitconfig` → Git aliases (`lg`, `l1-l5`), delta pager, gh credential helper
+- `~/.tmux.conf.local` → Tmux customizations (symlinked from `~/.tmux/.tmux.conf.local`)
 - `~/.secrets` → API keys (NOT tracked - create manually on new machines)
 
 ### Oh-My-Zsh Plugins (in order)
@@ -70,6 +72,9 @@ dotfiles checkout
 
 # Hide untracked files
 dotfiles config status.showUntrackedFiles no
+
+# Set up tmux symlink (after cloning gpakosz/.tmux)
+ln -sf ~/.tmux.conf.local ~/.tmux/.tmux.conf.local
 
 # Create ~/.secrets with your API keys
 ```
