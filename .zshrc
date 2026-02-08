@@ -37,18 +37,42 @@ source "$ZSH/oh-my-zsh.sh"
 ################################################################################
 # Ensure rustup-managed shims in ~/.cargo/bin take priority over distro /usr/bin
 # for rustc/cargo/rust-analyzer, without removing Fedora packages.
-
 # export PATH="$HOME/.cargo/bin:$PATH"
 
-autoload -U compinit && compinit
+################################################################################
+# Enhanced History Configuration
+################################################################################
+HISTSIZE=100000              # In-memory history (larger for better search)
+SAVEHIST=100000              # On-disk history (match in-memory)
+setopt INC_APPEND_HISTORY    # Write to history immediately, not on shell exit
+setopt HIST_FIND_NO_DUPS     # Don't show duplicates when searching history
+setopt HIST_REDUCE_BLANKS    # Remove extra whitespace from commands
+setopt HIST_IGNORE_ALL_DUPS  # Remove older duplicate when adding new entry
+
+################################################################################
+# Enhanced Completion Configuration
+################################################################################
+# Completion formatting and grouping
+zstyle ':completion:*' format '%F{yellow}-- %d --%f'
+zstyle ':completion:*' group-name ''
+zstyle ':completion:*:descriptions' format '%F{green}-- %d --%f'
+zstyle ':completion:*:warnings' format '%F{red}-- no matches --%f'
+zstyle ':completion:*:corrections' format '%F{yellow}-- %d (errors: %e) --%f'
+
+# fzf-tab enhancements - fuzzy file previews
+zstyle ':fzf-tab:*' fzf-flags --height=50% --layout=reverse --border
+zstyle ':fzf-tab:complete:cd:*' fzf-preview 'lsd -1 --color=always $realpath 2>/dev/null || ls -1 --color=always $realpath'
+zstyle ':fzf-tab:complete:*:*' fzf-preview 'bat --color=always --style=numbers --line-range=:100 $realpath 2>/dev/null || lsd -la --color=always $realpath 2>/dev/null || echo $word'
+
+# Switch group with < and >
+zstyle ':fzf-tab:*' switch-group '<' '>'
 
 ################################################################################
 # fzf configuration
 ################################################################################
-# if [[ $TERM_PROGRAM == "WarpTerminal" ]]; then
-#   export FZF_TMUX=0
-#   export FZF_DEFAULT_OPTS="--no-clear"
-# fi
+# Enhanced Ctrl+R history search
+export FZF_CTRL_R_OPTS="--preview 'echo {}' --preview-window up:3:wrap --bind 'ctrl-/:toggle-preview' --border"
+export FZF_DEFAULT_OPTS="--height=40% --layout=reverse --border --bind 'ctrl-/:toggle-preview'"
 
 ################################################################################
 # zsh-vim-mode
@@ -91,7 +115,8 @@ if [ -f "${HOME}/.config/aliases.sh" ]; then . "${HOME}/.config/aliases.sh"; fi
 # prompt (oh-my-posh)
 ################################################################################
 if command -v oh-my-posh &>/dev/null; then
-  eval "$(oh-my-posh init zsh --config ${HOME}/dev/productivity/oh-my-posh/themes/kushal.omp.json)"
+  #eval "$(oh-my-posh init zsh --config ${HOME}/dev/productivity/oh-my-posh/themes/kushal.omp.json)"
+  eval "$(oh-my-posh init zsh --config ${HOME}/dev/productivity/oh-my-posh/themes/easy-term.omp.json)"
 fi
 
 
@@ -105,7 +130,8 @@ fi
 #[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 
 
-[ ! -f "$HOME/.x-cmd.root/X" ] || . "$HOME/.x-cmd.root/X" # boot up x-cmd.
+# x-cmd - only source once (guarded to prevent duplicate loading)
+[[ -z "$X_CMD_SOURCED" ]] && [ -f "$HOME/.x-cmd.root/X" ] && . "$HOME/.x-cmd.root/X" && export X_CMD_SOURCED=1
 
 # pnpm
 export PNPM_HOME="$HOME/.local/share/pnpm"
@@ -113,3 +139,6 @@ case ":$PATH:" in
   *":$PNPM_HOME:"*) ;;
   *) export PATH="$PNPM_HOME:$PATH" ;;
 esac
+
+# Added by LM Studio CLI tool (lms)
+export PATH="$PATH:$HOME/.lmstudio/bin"
