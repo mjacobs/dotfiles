@@ -71,6 +71,7 @@ zstyle ':fzf-tab:*' switch-group '<' '>'
 # fzf configuration
 ################################################################################
 # Enhanced Ctrl+R history search
+export FZF_BASE=/home/linuxbrew/.linuxbrew/opt/fzf
 export FZF_CTRL_R_OPTS="--preview 'echo {}' --preview-window up:3:wrap --bind 'ctrl-/:toggle-preview' --border"
 export FZF_DEFAULT_OPTS="--height=40% --layout=reverse --border --bind 'ctrl-/:toggle-preview'"
 
@@ -116,7 +117,7 @@ if [ -f "${HOME}/.config/aliases.sh" ]; then . "${HOME}/.config/aliases.sh"; fi
 ################################################################################
 if command -v oh-my-posh &>/dev/null; then
   #eval "$(oh-my-posh init zsh --config ${HOME}/dev/productivity/oh-my-posh/themes/kushal.omp.json)"
-  eval "$(oh-my-posh init zsh --config ${HOME}/dev/productivity/oh-my-posh/themes/easy-term.omp.json)"
+  eval "$(oh-my-posh init zsh --config ${HOME}/.cache/oh-my-posh/themes/easy-term.omp.json)"
 fi
 
 
