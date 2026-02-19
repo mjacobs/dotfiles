@@ -127,6 +127,9 @@ dmypy.json
 .oh-my-zsh/.git/
 .config/nvim/pack/
 
+# Ghostty built-in themes (shipped with the binary, not user config)
+.config/ghostty/themes/
+
 # Cache and state
 .cache/
 .local/
