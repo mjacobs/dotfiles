@@ -131,7 +131,13 @@ Prefer modern rust/go alternatives to classic Unix tools:
 
 ```bash
 # ensure required tools are available
-brew install fzf bat delta
+brew install fzf bat delta oh-my-posh
+```
+
+Also, install rust/cargo:
+
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 ```
 
 ### dotfiles setup
@@ -154,6 +160,14 @@ git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
 # Then in tmux, press prefix + I to install plugins
 
 # Create ~/.secrets with your API keys
+```
+
+Clone zsh plugins:
+
+```bash
+git clone https://github.com/Aloxaf/fzf-tab ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/fzf-tab
+git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
+git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
 ```
 
 ## Style Preferences
