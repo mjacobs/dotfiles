@@ -63,7 +63,7 @@ Custom plugins are in `~/.oh-my-zsh/custom/plugins/`.
 
 ### Prompt
 
-Uses oh-my-posh with theme at `~/dev/productivity/oh-my-posh/themes/kushal.omp.json`.
+Uses oh-my-posh with theme at `~/.cache/oh-my-posh/themes/kushal.omp.json`.
 
 ### Secrets Management
 
@@ -99,7 +99,6 @@ SSH authentication uses gpg-agent (not ssh-agent). The socket is at `$(gpgconf -
 ### Project Directories
 
 - `~/dev/` - Main development directory across all projects (largely unrelated to one another)
-- `~/dev/productivity/` - Projects related to productivity tools and configs
 
 ## Tool Preferences
 
@@ -127,6 +126,15 @@ Prefer modern rust/go alternatives to classic Unix tools:
 - Useful aliases: `lg` (graph log), `l1`-`l5` (various log formats), `gsp` (stash-pull-pop)
 
 ## Setting Up on a New Machine
+
+### Prerequisites
+
+```bash
+# ensure required tools are available
+brew install fzf bat delta
+```
+
+### dotfiles setup
 
 ```bash
 # Clone the bare repo

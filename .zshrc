@@ -18,6 +18,14 @@ bindkey "$terminfo[kcud1]" history-substring-search-down
 
 
 ################################################################################
+# fzf configuration (before plugins)
+################################################################################
+# Enhanced Ctrl+R history search
+export FZF_BASE=/home/linuxbrew/.linuxbrew/opt/fzf/
+export FZF_CTRL_R_OPTS="--preview 'echo {}' --preview-window up:3:wrap --bind 'ctrl-/:toggle-preview' --border"
+export FZF_DEFAULT_OPTS="--height=40% --layout=reverse --border --bind 'ctrl-/:toggle-preview'"
+
+################################################################################
 # oh-my-zsh plugins
 ################################################################################
 
@@ -66,14 +74,6 @@ zstyle ':fzf-tab:complete:*:*' fzf-preview 'bat --color=always --style=numbers -
 
 # Switch group with < and >
 zstyle ':fzf-tab:*' switch-group '<' '>'
-
-################################################################################
-# fzf configuration
-################################################################################
-# Enhanced Ctrl+R history search
-export FZF_BASE=/home/linuxbrew/.linuxbrew/opt/fzf
-export FZF_CTRL_R_OPTS="--preview 'echo {}' --preview-window up:3:wrap --bind 'ctrl-/:toggle-preview' --border"
-export FZF_DEFAULT_OPTS="--height=40% --layout=reverse --border --bind 'ctrl-/:toggle-preview'"
 
 ################################################################################
 # zsh-vim-mode
