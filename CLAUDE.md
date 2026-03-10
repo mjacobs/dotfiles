@@ -144,7 +144,7 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 
 ```bash
 # Clone the bare repo
-git clone --bare https://github.com/mjacobs/dotfiles.git $HOME/.dotfiles
+git clone --bare git@github.com:mjacobs/dotfiles.git $HOME/.dotfiles
 
 # Define the alias temporarily
 alias dotfiles='git --git-dir=$HOME/.dotfiles --work-tree=$HOME'
