@@ -76,3 +76,5 @@ font-family = psudoFont Liga Mono
 # font-family = BerkeleyMonoTrial Nerd Font Mono
 
 font-family = Symbols Nerd Font Mono
+
+shell-integration-features = sudo

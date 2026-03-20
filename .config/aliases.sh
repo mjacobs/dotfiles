@@ -6,6 +6,7 @@ alias zs="sudo zpool iostat -n 1 -v -q -l"
 
 alias j="sudo journalctl"
 alias s="sudo systemctl"
+compdef _sudo j s
 
 if [[ -f "/usr/bin/lsd" ]]; then
   alias ls="lsd"
@@ -14,7 +15,6 @@ fi
 alias ff='fastfetch'
 
 alias cat='bat'
-[[ -f /home/linuxbrew/.linuxbrew/bin/mcat ]] && alias mcat='/home/linuxbrew/.linuxbrew/bin/mcat'
 
 alias vim='nvim'
 
@@ -23,12 +23,9 @@ alias vim='nvim'
 alias c="xclip"
 alias v="xclip -o"
 
-alias codex='open-codex'
-#alias claude="$HOME/.claude/local/claude"
-
-alias cx='open-codex'
 alias l2='ll --tree --depth 2'
 
-alias catt="glow"
-alias catp="glow -p"
-[[ -f "$HOME/dev/private/rp/SillyTavern/start.sh" ]] && alias st="$HOME/dev/private/rp/SillyTavern/start.sh"
+alias glow="glow -p"
+
+alias k="kubectl"
+compdef _kubectl k

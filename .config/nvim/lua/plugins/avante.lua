@@ -9,11 +9,11 @@ return {
     providers = {
       gemini = {
         --endpoint = "https://generativelanguage.googleapis.com/v1beta/models",
-        model = "gemini-2.5-flash",
-        timeout = 30000, -- Timeout in milliseconds
+        model = "gemini-3.1-pro-preview-customtools",
+        timeout = 45000, -- Timeout in milliseconds
         extra_request_body = {
           temperature = 0,
-          max_tokens = 8192,
+          max_tokens = 65536,
         },
       },
     },

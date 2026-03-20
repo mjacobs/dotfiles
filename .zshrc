@@ -2,6 +2,32 @@
 # zsh stuff
 ################################################################################
 
+################################################################################
+# cached generated completions
+################################################################################
+ZSH_COMPLETION_CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/zsh/completions"
+mkdir -p "$ZSH_COMPLETION_CACHE_DIR"
+fpath=("$ZSH_COMPLETION_CACHE_DIR" $fpath)
+
+regen_zsh_completion_if_needed() {
+  local cmd="$1"
+  local outfile="$ZSH_COMPLETION_CACHE_DIR/_$cmd"
+
+  command -v "$cmd" >/dev/null 2>&1 || return 0
+
+  # regenerate if missing, or if the binary is newer than the cached completion
+  if [[ ! -f "$outfile" || "$(command -v "$cmd")" -nt "$outfile" ]]; then
+    "$cmd" completion zsh >|"$outfile"
+  fi
+}
+
+# tools that support: <tool> completion zsh
+regen_zsh_completion_if_needed kubectl
+regen_zsh_completion_if_needed tailscale
+# regen_zsh_completion_if_needed helm
+# regen_zsh_completion_if_needed kind
+# regen_zsh_completion_if_needed task
+
 # oh-my-zsh installation path
 export ZSH="${HOME}/.oh-my-zsh"
 
@@ -15,7 +41,6 @@ bindkey '^[[B' history-substring-search-down
 bindkey '^[OB' history-substring-search-down
 bindkey "$terminfo[kcuu1]" history-substring-search-up
 bindkey "$terminfo[kcud1]" history-substring-search-down
-
 
 ################################################################################
 # fzf configuration (before plugins)
@@ -50,12 +75,12 @@ source "$ZSH/oh-my-zsh.sh"
 ################################################################################
 # Enhanced History Configuration
 ################################################################################
-HISTSIZE=100000              # In-memory history (larger for better search)
-SAVEHIST=100000              # On-disk history (match in-memory)
-setopt INC_APPEND_HISTORY    # Write to history immediately, not on shell exit
-setopt HIST_FIND_NO_DUPS     # Don't show duplicates when searching history
-setopt HIST_REDUCE_BLANKS    # Remove extra whitespace from commands
-setopt HIST_IGNORE_ALL_DUPS  # Remove older duplicate when adding new entry
+HISTSIZE=100000             # In-memory history (larger for better search)
+SAVEHIST=100000             # On-disk history (match in-memory)
+setopt INC_APPEND_HISTORY   # Write to history immediately, not on shell exit
+setopt HIST_FIND_NO_DUPS    # Don't show duplicates when searching history
+setopt HIST_REDUCE_BLANKS   # Remove extra whitespace from commands
+setopt HIST_IGNORE_ALL_DUPS # Remove older duplicate when adding new entry
 
 ################################################################################
 # Enhanced Completion Configuration
@@ -74,6 +99,9 @@ zstyle ':fzf-tab:complete:*:*' fzf-preview 'bat --color=always --style=numbers -
 
 # Switch group with < and >
 zstyle ':fzf-tab:*' switch-group '<' '>'
+
+compinit
+setopt COMPLETE_ALIASES
 
 ################################################################################
 # zsh-vim-mode
@@ -96,7 +124,6 @@ export SSH_AUTH_SOCK="$(gpgconf --list-dirs agent-ssh-socket)"
 gpgconf --launch gpg-agent >/dev/null 2>&1
 gpg-connect-agent updatestartuptty /bye >/dev/null 2>&1
 
-
 ################################################################################
 # alias/fns
 ################################################################################
@@ -116,9 +143,9 @@ if [ -f "${HOME}/.config/aliases.sh" ]; then . "${HOME}/.config/aliases.sh"; fi
 # prompt (oh-my-posh)
 ################################################################################
 if command -v oh-my-posh &>/dev/null; then
-  eval "$(oh-my-posh init zsh --config easy-term)"
+  #if [[  ]]; then
+  #fi
 fi
-
 
 ################################################################################
 # API Keys (loaded from ~/.secrets - not tracked in dotfiles repo)
@@ -129,16 +156,44 @@ fi
 #[ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
 #[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 
-
 # x-cmd - only source once (guarded to prevent duplicate loading)
 [[ -z "$X_CMD_SOURCED" ]] && [ -f "$HOME/.x-cmd.root/X" ] && . "$HOME/.x-cmd.root/X" && export X_CMD_SOURCED=1
 
 # pnpm
 export PNPM_HOME="$HOME/.local/share/pnpm"
 case ":$PATH:" in
-  *":$PNPM_HOME:"*) ;;
-  *) export PATH="$PNPM_HOME:$PATH" ;;
+*":$PNPM_HOME:"*) ;;
+*) export PATH="$PNPM_HOME:$PATH" ;;
 esac
 
 # Added by LM Studio CLI tool (lms)
 export PATH="$PATH:$HOME/.lmstudio/bin"
+eval "$(oh-my-posh init zsh --config '$HOME/.local/share/omp-manager/themes/froczh.omp.json')" # [omp-manager]
+#compdef opencode
+###-begin-opencode-completions-###
+#
+# yargs command completion script
+#
+# Installation: opencode completion >> ~/.zshrc
+#    or opencode completion >> ~/.zprofile on OSX.
+#
+_opencode_yargs_completions()
+{
+  local reply
+  local si=$IFS
+  IFS=$'
+' reply=($(COMP_CWORD="$((CURRENT-1))" COMP_LINE="$BUFFER" COMP_POINT="$CURSOR" opencode --get-yargs-completions "${words[@]}"))
+  IFS=$si
+  if [[ ${#reply} -gt 0 ]]; then
+    _describe 'values' reply
+  else
+    _default
+  fi
+}
+if [[ "'${zsh_eval_context[-1]}" == "loadautofunc" ]]; then
+  _opencode_yargs_completions "$@"
+else
+  compdef _opencode_yargs_completions opencode
+fi
+###-end-opencode-completions-###
+

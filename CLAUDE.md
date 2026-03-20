@@ -131,7 +131,7 @@ Prefer modern rust/go alternatives to classic Unix tools:
 
 ```bash
 # ensure required tools are available
-brew install fzf bat delta oh-my-posh
+brew install fzf bat delta oh-my-posh neovim
 ```
 
 Also, install rust/cargo:
