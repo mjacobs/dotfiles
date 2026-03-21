@@ -117,7 +117,7 @@ PATH=/sbin:$HOME/.local/google-cloud-sdk/bin:$HOME/.local/bin:/usr/local/bin:/us
 [[ -s "$HOME/.gvm/scripts/gvm" ]] && source "$HOME/.gvm/scripts/gvm"
 #eval "$(/bin/brew shellenv)"
 
-# -f $HOME/.shelloracle.bash ] && source $HOME/.shelloracle.bash
+# -f "$HOME/.shelloracle.bash" ] && source "$HOME/.shelloracle.bash"
 
 # . "$HOME/.atuin/bin/env"
 

@@ -28,6 +28,40 @@ regen_zsh_completion_if_needed tailscale
 # regen_zsh_completion_if_needed kind
 # regen_zsh_completion_if_needed task
 
+# Only proceed if rustup exists
+if command -v rustup >/dev/null 2>&1; then
+  add_rust_completions_if_needed() {
+    # Ensure cache dir exists
+    : "${ZSH_COMPLETION_CACHE_DIR:=${HOME}/.zsh/completions}"
+    mkdir -p "$ZSH_COMPLETION_CACHE_DIR"
+
+    # Check if completions are already available via fpath
+    local need_rustup=1
+    local need_cargo=1
+
+    for dir in $fpath; do
+      [[ -f "$dir/_rustup" ]] && need_rustup=0
+      [[ -f "$dir/_cargo" ]] && need_cargo=0
+    done
+
+    # Generate missing ones
+    if [[ $need_rustup -eq 1 ]]; then
+      rustup completions zsh >"$ZSH_COMPLETION_CACHE_DIR/_rustup"
+    fi
+
+    if [[ $need_cargo -eq 1 ]]; then
+      rustup completions zsh cargo >"$ZSH_COMPLETION_CACHE_DIR/_cargo"
+    fi
+
+    # Ensure cache dir is in fpath
+    if [[ ! " ${fpath[*]} " =~ " ${ZSH_COMPLETION_CACHE_DIR} " ]]; then
+      fpath=("$ZSH_COMPLETION_CACHE_DIR" $fpath)
+    fi
+  }
+
+  add_rust_completions_if_needed
+fi
+
 # oh-my-zsh installation path
 export ZSH="${HOME}/.oh-my-zsh"
 
@@ -177,12 +211,11 @@ eval "$(oh-my-posh init zsh --config '$HOME/.local/share/omp-manager/themes/froc
 # Installation: opencode completion >> ~/.zshrc
 #    or opencode completion >> ~/.zprofile on OSX.
 #
-_opencode_yargs_completions()
-{
+_opencode_yargs_completions() {
   local reply
   local si=$IFS
   IFS=$'
-' reply=($(COMP_CWORD="$((CURRENT-1))" COMP_LINE="$BUFFER" COMP_POINT="$CURSOR" opencode --get-yargs-completions "${words[@]}"))
+' reply=($(COMP_CWORD="$((CURRENT - 1))" COMP_LINE="$BUFFER" COMP_POINT="$CURSOR" opencode --get-yargs-completions "${words[@]}"))
   IFS=$si
   if [[ ${#reply} -gt 0 ]]; then
     _describe 'values' reply
@@ -196,4 +229,3 @@ else
   compdef _opencode_yargs_completions opencode
 fi
 ###-end-opencode-completions-###
-
