@@ -202,7 +202,7 @@ esac
 
 # Added by LM Studio CLI tool (lms)
 export PATH="$PATH:$HOME/.lmstudio/bin"
-eval "$(oh-my-posh init zsh --config '$HOME/.local/share/omp-manager/themes/froczh.omp.json')" # [omp-manager]
+eval "$(oh-my-posh init zsh --config $HOME/.local/share/omp-manager/themes/froczh.omp.json)" # [omp-manager]
 #compdef opencode
 ###-begin-opencode-completions-###
 #
