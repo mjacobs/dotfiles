@@ -22,10 +22,11 @@ regen_zsh_completion_if_needed() {
 }
 
 # tools that support: <tool> completion zsh
+regen_zsh_completion_if_needed docker
 regen_zsh_completion_if_needed kubectl
 regen_zsh_completion_if_needed tailscale
+regen_zsh_completion_if_needed kind
 # regen_zsh_completion_if_needed helm
-# regen_zsh_completion_if_needed kind
 # regen_zsh_completion_if_needed task
 
 # Only proceed if rustup exists
@@ -120,22 +121,30 @@ setopt HIST_IGNORE_ALL_DUPS # Remove older duplicate when adding new entry
 # Enhanced Completion Configuration
 ################################################################################
 # Completion formatting and grouping
-zstyle ':completion:*' format '%F{yellow}-- %d --%f'
+zstyle ':completion:*' format '-- %d --'
 zstyle ':completion:*' group-name ''
-zstyle ':completion:*:descriptions' format '%F{green}-- %d --%f'
-zstyle ':completion:*:warnings' format '%F{red}-- no matches --%f'
-zstyle ':completion:*:corrections' format '%F{yellow}-- %d (errors: %e) --%f'
+zstyle ':completion:*:descriptions' format '-- %d --'
+zstyle ':completion:*:warnings' format '-- no matches --'
+zstyle ':completion:*:corrections' format '-- %d (errors: %e) --'
 
 # fzf-tab enhancements - fuzzy file previews
 zstyle ':fzf-tab:*' fzf-flags --height=50% --layout=reverse --border
 zstyle ':fzf-tab:complete:cd:*' fzf-preview 'lsd -1 --color=always $realpath 2>/dev/null || ls -1 --color=always $realpath'
 zstyle ':fzf-tab:complete:*:*' fzf-preview 'bat --color=always --style=numbers --line-range=:100 $realpath 2>/dev/null || lsd -la --color=always $realpath 2>/dev/null || echo $word'
 
+# Completion caching
+zstyle ':completion:*' use-cache yes
+zstyle ':completion:*' cache-path "$ZSH_COMPLETION_CACHE_DIR/zcompcache"
+
 # Switch group with < and >
 zstyle ':fzf-tab:*' switch-group '<' '>'
 
+# Use fzf-tab to extract information from completions (hit Ctrl-y to copy selection)
+zstyle ':fzf-tab:*' fzf-bindings 'ctrl-y:execute-silent(echo -n $word | xclip -selection clipboard)+accept'
+
+eval "$(zoxide init zsh)"
+
 compinit
-setopt COMPLETE_ALIASES
 
 ################################################################################
 # zsh-vim-mode
@@ -194,14 +203,14 @@ fi
 [[ -z "$X_CMD_SOURCED" ]] && [ -f "$HOME/.x-cmd.root/X" ] && . "$HOME/.x-cmd.root/X" && export X_CMD_SOURCED=1
 
 # pnpm
-export PNPM_HOME="$HOME/.local/share/pnpm"
-case ":$PATH:" in
-*":$PNPM_HOME:"*) ;;
-*) export PATH="$PNPM_HOME:$PATH" ;;
-esac
+#export PNPM_HOME="$HOME/.local/share/pnpm"
+#case ":$PATH:" in
+#*":$PNPM_HOME:"*) ;;
+#*) export PATH="$PNPM_HOME:$PATH" ;;
+#esac
 
 # Added by LM Studio CLI tool (lms)
-export PATH="$PATH:$HOME/.lmstudio/bin"
+#export PATH="$PATH:$HOME/.lmstudio/bin"
 eval "$(oh-my-posh init zsh --config $HOME/.local/share/omp-manager/themes/froczh.omp.json)" # [omp-manager]
 #compdef opencode
 ###-begin-opencode-completions-###
