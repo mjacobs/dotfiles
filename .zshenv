@@ -16,6 +16,9 @@ path+=('/usr/local/cuda/bin')
 # Ensure the final PATH variable is exported for subprocesses
 export PATH
 
+# ripgrep config
+export RIPGREP_CONFIG_PATH="$HOME/.ripgreprc"
+
 . "$HOME/.cargo/env"
 
 ################################################################################

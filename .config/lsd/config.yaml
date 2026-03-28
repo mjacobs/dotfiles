@@ -1,0 +1,12 @@
+# LSD configuration
+# https://github.com/lsd-rs/lsd#config-file-content
+
+date: relative
+sorting:
+  dir-grouping: first
+
+icons:
+  when: auto
+  separator: " "
+
+header: false
