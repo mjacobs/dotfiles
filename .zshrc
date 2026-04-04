@@ -101,13 +101,6 @@ plugins=(
 source "$ZSH/oh-my-zsh.sh"
 
 ################################################################################
-# Rust / rustup PATH precedence
-################################################################################
-# Ensure rustup-managed shims in ~/.cargo/bin take priority over distro /usr/bin
-# for rustc/cargo/rust-analyzer, without removing Fedora packages.
-# export PATH="$HOME/.cargo/bin:$PATH"
-
-################################################################################
 # Enhanced History Configuration
 ################################################################################
 HISTSIZE=100000             # In-memory history (larger for better search)
@@ -161,11 +154,13 @@ hash -d srv=/mnt/data1/scratch
 # GPG/SSH
 ################################################################################
 
-# Use gpg-agent for both GPG and SSH
+# GPG (signing only, not used for SSH)
 export GPG_TTY=$(tty)
-export SSH_AUTH_SOCK="$(gpgconf --list-dirs agent-ssh-socket)"
-gpgconf --launch gpg-agent >/dev/null 2>&1
-gpg-connect-agent updatestartuptty /bye >/dev/null 2>&1
+
+# SSH agent - start one if not already running
+if [[ -z "$SSH_AUTH_SOCK" || ! -S "$SSH_AUTH_SOCK" ]]; then
+  eval "$(ssh-agent -s)" >/dev/null 2>&1
+fi
 
 ################################################################################
 # alias/fns
@@ -183,14 +178,6 @@ if [ -f "${HOME}/.config/aliases.sh" ]; then . "${HOME}/.config/aliases.sh"; fi
 [[ -f /home/linuxbrew/.linuxbrew/bin/brew ]] && eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 
 ################################################################################
-# prompt (oh-my-posh)
-################################################################################
-if command -v oh-my-posh &>/dev/null; then
-  #if [[  ]]; then
-  #fi
-fi
-
-################################################################################
 # API Keys (loaded from ~/.secrets - not tracked in dotfiles repo)
 ################################################################################
 [[ -f "${HOME}/.secrets" ]] && source "${HOME}/.secrets"
@@ -202,15 +189,11 @@ fi
 # x-cmd - only source once (guarded to prevent duplicate loading)
 [[ -z "$X_CMD_SOURCED" ]] && [ -f "$HOME/.x-cmd.root/X" ] && . "$HOME/.x-cmd.root/X" && export X_CMD_SOURCED=1
 
-# pnpm
-#export PNPM_HOME="$HOME/.local/share/pnpm"
-#case ":$PATH:" in
-#*":$PNPM_HOME:"*) ;;
-#*) export PATH="$PNPM_HOME:$PATH" ;;
-#esac
+################################################################################
+# node / nvm (heavy — loaded here for interactive shells only, not in .zshenv)
+################################################################################
+[[ -s "$NVM_DIR/nvm.sh" ]] && \. "$NVM_DIR/nvm.sh"
 
-# Added by LM Studio CLI tool (lms)
-#export PATH="$PATH:$HOME/.lmstudio/bin"
 eval "$(oh-my-posh init zsh --config $HOME/.local/share/omp-manager/themes/froczh.omp.json)" # [omp-manager]
 #compdef opencode
 ###-begin-opencode-completions-###
@@ -238,3 +221,4 @@ else
   compdef _opencode_yargs_completions opencode
 fi
 ###-end-opencode-completions-###
+
