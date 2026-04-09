@@ -126,6 +126,7 @@ dmypy.json
 .tmux/.git/
 .oh-my-zsh/.git/
 .config/nvim/pack/
+.config/nvim/lazy-lock.json
 
 # Ghostty built-in themes (shipped with the binary, not user config)
 .config/ghostty/themes/
