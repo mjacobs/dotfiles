@@ -9,15 +9,19 @@ ZSH_COMPLETION_CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/zsh/completions"
 mkdir -p "$ZSH_COMPLETION_CACHE_DIR"
 fpath=("$ZSH_COMPLETION_CACHE_DIR" $fpath)
 
+_zsh_comp_regen_needed=0
 regen_zsh_completion_if_needed() {
   local cmd="$1"
+  shift
+  local gen=("$cmd" ${@:-completion zsh})
   local outfile="$ZSH_COMPLETION_CACHE_DIR/_$cmd"
 
   command -v "$cmd" >/dev/null 2>&1 || return 0
 
   # regenerate if missing, or if the binary is newer than the cached completion
   if [[ ! -f "$outfile" || "$(command -v "$cmd")" -nt "$outfile" ]]; then
-    "$cmd" completion zsh >|"$outfile"
+    "${gen[@]}" 2>/dev/null | sed '/./,$!d; s/`/\\`/g' >|"$outfile"
+    _zsh_comp_regen_needed=1
   fi
 }
 
@@ -25,43 +29,16 @@ regen_zsh_completion_if_needed() {
 regen_zsh_completion_if_needed docker
 regen_zsh_completion_if_needed kubectl
 regen_zsh_completion_if_needed tailscale
-regen_zsh_completion_if_needed kind
+regen_zsh_completion_if_needed openclaw completion
 # regen_zsh_completion_if_needed helm
+# regen_zsh_completion_if_needed kind
 # regen_zsh_completion_if_needed task
 
-# Only proceed if rustup exists
-if command -v rustup >/dev/null 2>&1; then
-  add_rust_completions_if_needed() {
-    # Ensure cache dir exists
-    : "${ZSH_COMPLETION_CACHE_DIR:=${HOME}/.zsh/completions}"
-    mkdir -p "$ZSH_COMPLETION_CACHE_DIR"
-
-    # Check if completions are already available via fpath
-    local need_rustup=1
-    local need_cargo=1
-
-    for dir in $fpath; do
-      [[ -f "$dir/_rustup" ]] && need_rustup=0
-      [[ -f "$dir/_cargo" ]] && need_cargo=0
-    done
-
-    # Generate missing ones
-    if [[ $need_rustup -eq 1 ]]; then
-      rustup completions zsh >"$ZSH_COMPLETION_CACHE_DIR/_rustup"
-    fi
-
-    if [[ $need_cargo -eq 1 ]]; then
-      rustup completions zsh cargo >"$ZSH_COMPLETION_CACHE_DIR/_cargo"
-    fi
-
-    # Ensure cache dir is in fpath
-    if [[ ! " ${fpath[*]} " =~ " ${ZSH_COMPLETION_CACHE_DIR} " ]]; then
-      fpath=("$ZSH_COMPLETION_CACHE_DIR" $fpath)
-    fi
-  }
-
-  add_rust_completions_if_needed
+# invalidate oh-my-zsh's compinit cache if any completions were regenerated
+if ((_zsh_comp_regen_needed)); then
+  command rm -f ~/.zcompdump*
 fi
+unset _zsh_comp_regen_needed
 
 # oh-my-zsh installation path
 export ZSH="${HOME}/.oh-my-zsh"
@@ -70,12 +47,6 @@ export ZSH="${HOME}/.oh-my-zsh"
 # zsh history
 ################################################################################
 setopt no_flow_control
-bindkey '^[[A' history-substring-search-up
-bindkey '^[OA' history-substring-search-up
-bindkey '^[[B' history-substring-search-down
-bindkey '^[OB' history-substring-search-down
-bindkey "$terminfo[kcuu1]" history-substring-search-up
-bindkey "$terminfo[kcud1]" history-substring-search-down
 
 ################################################################################
 # fzf configuration (before plugins)
@@ -100,6 +71,14 @@ plugins=(
 
 source "$ZSH/oh-my-zsh.sh"
 
+# history-substring-search keybindings (must be after plugin load)
+bindkey '^[[A' history-substring-search-up
+bindkey '^[OA' history-substring-search-up
+bindkey '^[[B' history-substring-search-down
+bindkey '^[OB' history-substring-search-down
+bindkey "$terminfo[kcuu1]" history-substring-search-up
+bindkey "$terminfo[kcud1]" history-substring-search-down
+
 ################################################################################
 # Enhanced History Configuration
 ################################################################################
@@ -114,30 +93,19 @@ setopt HIST_IGNORE_ALL_DUPS # Remove older duplicate when adding new entry
 # Enhanced Completion Configuration
 ################################################################################
 # Completion formatting and grouping
-zstyle ':completion:*' format '-- %d --'
+zstyle ':completion:*' format '%F{yellow}-- %d --%f'
 zstyle ':completion:*' group-name ''
-zstyle ':completion:*:descriptions' format '-- %d --'
-zstyle ':completion:*:warnings' format '-- no matches --'
-zstyle ':completion:*:corrections' format '-- %d (errors: %e) --'
+zstyle ':completion:*:descriptions' format '%F{green}-- %d --%f'
+zstyle ':completion:*:warnings' format '%F{red}-- no matches --%f'
+zstyle ':completion:*:corrections' format '%F{yellow}-- %d (errors: %e) --%f'
 
 # fzf-tab enhancements - fuzzy file previews
 zstyle ':fzf-tab:*' fzf-flags --height=50% --layout=reverse --border
 zstyle ':fzf-tab:complete:cd:*' fzf-preview 'lsd -1 --color=always $realpath 2>/dev/null || ls -1 --color=always $realpath'
 zstyle ':fzf-tab:complete:*:*' fzf-preview 'bat --color=always --style=numbers --line-range=:100 $realpath 2>/dev/null || lsd -la --color=always $realpath 2>/dev/null || echo $word'
 
-# Completion caching
-zstyle ':completion:*' use-cache yes
-zstyle ':completion:*' cache-path "$ZSH_COMPLETION_CACHE_DIR/zcompcache"
-
 # Switch group with < and >
 zstyle ':fzf-tab:*' switch-group '<' '>'
-
-# Use fzf-tab to extract information from completions (hit Ctrl-y to copy selection)
-zstyle ':fzf-tab:*' fzf-bindings 'ctrl-y:execute-silent(echo -n $word | xclip -selection clipboard)+accept'
-
-eval "$(zoxide init zsh)"
-
-compinit
 
 ################################################################################
 # zsh-vim-mode
