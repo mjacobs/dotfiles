@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-Personal dotfiles managed with a bare git repo at `~/.dotfiles`. Remote: <https://github.com/mjacobs/dotfiles>
+Personal dotfiles managed with [yadm](https://yadm.io). Remote: <https://github.com/mjacobs/dotfiles>
 
 ## System
 
@@ -15,14 +15,10 @@ Personal dotfiles managed with a bare git repo at `~/.dotfiles`. Remote: <https:
 ## Common Commands
 
 ```bash
-# The 'dotfiles' alias is defined in ~/.config/aliases.sh
-dotfiles status
-dotfiles add ~/.newfile
-dotfiles commit -m "message"
-dotfiles push
-
-# Or without the alias:
-git --git-dir=$HOME/.dotfiles --work-tree=$HOME <command>
+yadm status
+yadm add ~/.newfile
+yadm commit -m "message"
+yadm push
 ```
 
 ## Architecture
@@ -37,7 +33,7 @@ git --git-dir=$HOME/.dotfiles --work-tree=$HOME <command>
 
 - `~/.zshrc` → oh-my-zsh plugins, GPG/SSH agent setup, homebrew, oh-my-posh prompt
 - `~/.zshenv` → PATH additions (`.local/bin`, JetBrains, gcloud, bun, cargo)
-- `~/.config/aliases.sh` → Custom aliases including `dotfiles` (sourced by .zshrc)
+- `~/.config/aliases.sh` → Custom aliases (sourced by .zshrc)
 - `~/.config/nvim/` → Neovim config (LazyVim-based)
 - `~/.gitconfig` → Git aliases (`lg`, `l1-l5`), delta pager, gh credential helper
 - `~/.tmux.conf` → Tmux config with TPM and tmux-powerkit (catppuccin mocha theme)
@@ -45,7 +41,7 @@ git --git-dir=$HOME/.dotfiles --work-tree=$HOME <command>
 
 ### Oh-My-Zsh Plugins (in order)
 
-`fzf`, `fzf-tab`, `git`, `history-substring-search`, `zsh-autosuggestions`, `zsh-syntax-highlighting`
+`fzf`, `fzf-tab`, `git`, `history-substring-search`, `zsh-autosuggestions`, `zsh-syntax-highlighting`, `zsh-shift-select`
 
 Custom plugins are in `~/.oh-my-zsh/custom/plugins/`.
 
@@ -71,14 +67,13 @@ API keys are in `~/.secrets` (chmod 600), sourced by `.zshrc`. This file is giti
 
 ### Notable Aliases
 
-- `dotfiles` → git commands for the bare dotfiles repo
 - `cat` → `bat`, `vim` → `nvim`, `ls` → `lsd`
 - `c`/`v` → xclip copy/paste
 - `g` → glances, `j` → journalctl, `s` → systemctl
 
 ### GPG/SSH
 
-SSH authentication uses gpg-agent (not ssh-agent). The socket is at `$(gpgconf --list-dirs agent-ssh-socket)`.
+GPG is used for commit signing only. SSH authentication uses ssh-agent (started in `.zshrc` if `$SSH_AUTH_SOCK` is missing).
 
 ## Development Environment
 
@@ -143,17 +138,14 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 ### dotfiles setup
 
 ```bash
-# Clone the bare repo
-git clone --bare git@github.com:mjacobs/dotfiles.git $HOME/.dotfiles
+# Install yadm
+brew install yadm
 
-# Define the alias temporarily
-alias dotfiles='git --git-dir=$HOME/.dotfiles --work-tree=$HOME'
-
-# Checkout the files (backup any existing files first)
-dotfiles checkout
+# Clone and checkout (use -f if files already exist in $HOME)
+yadm clone git@github.com:mjacobs/dotfiles.git
 
 # Hide untracked files
-dotfiles config status.showUntrackedFiles no
+yadm config status.showUntrackedFiles no
 
 # Install TPM and tmux plugins
 git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
@@ -168,6 +160,7 @@ Clone zsh plugins:
 git clone https://github.com/Aloxaf/fzf-tab ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/fzf-tab
 git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
 git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
+git clone https://github.com/le0me55i/zsh-shift-select ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-shift-select
 ```
 
 ## Style Preferences
