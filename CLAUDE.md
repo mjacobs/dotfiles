@@ -8,7 +8,7 @@ Personal dotfiles managed with a bare git repo at `~/.dotfiles`. Remote: <https:
 
 ## System
 
-- **OS**: Fedora 42 (KDE Plasma Desktop Edition)
+- **OS**: Fedora 43 (KDE Plasma Desktop Edition)
 - **Host**: private-host
 - **Shell**: zsh (primary), bash (fallback)
 
