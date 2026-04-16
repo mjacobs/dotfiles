@@ -7,7 +7,7 @@
 ################################################################################
 ZSH_COMPLETION_CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/zsh/completions"
 mkdir -p "$ZSH_COMPLETION_CACHE_DIR"
-fpath=("$ZSH_COMPLETION_CACHE_DIR" $fpath)
+fpath=("$ZSH_COMPLETION_CACHE_DIR" ~/.zfunc $fpath)
 
 _zsh_comp_regen_needed=0
 regen_zsh_completion_if_needed() {
@@ -67,6 +67,7 @@ plugins=(
   history-substring-search
   zsh-autosuggestions
   zsh-syntax-highlighting
+  zsh-shift-select
 )
 
 source "$ZSH/oh-my-zsh.sh"
@@ -150,9 +151,10 @@ if [ -f "${HOME}/.config/aliases.sh" ]; then . "${HOME}/.config/aliases.sh"; fi
 ################################################################################
 [[ -f "${HOME}/.secrets" ]] && source "${HOME}/.secrets"
 
-# bun completions
-#[ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
-#[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+################################################################################
+# local overrides
+################################################################################
+[[ -f "${HOME}/.zshrc.local" ]] && source "${HOME}/.zshrc.local"
 
 # x-cmd - only source once (guarded to prevent duplicate loading)
 [[ -z "$X_CMD_SOURCED" ]] && [ -f "$HOME/.x-cmd.root/X" ] && . "$HOME/.x-cmd.root/X" && export X_CMD_SOURCED=1
@@ -190,3 +192,5 @@ else
 fi
 ###-end-opencode-completions-###
 
+# bun completions
+[ -s "/home/mj/.oh-my-zsh/completions/_bun" ] && source "/home/mj/.oh-my-zsh/completions/_bun"
