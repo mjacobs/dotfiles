@@ -3,6 +3,15 @@
 ################################################################################
 
 ################################################################################
+# OS-specific rc (sourced early so FZF_BASE, OMP_THEME_DIR, named dirs apply
+# before plugins load)
+################################################################################
+case "$OSTYPE" in
+  darwin*) [[ -f "${HOME}/.config/zsh/rc.macos.zsh" ]] && source "${HOME}/.config/zsh/rc.macos.zsh" ;;
+  linux*)  [[ -f "${HOME}/.config/zsh/rc.linux.zsh" ]] && source "${HOME}/.config/zsh/rc.linux.zsh" ;;
+esac
+
+################################################################################
 # cached generated completions
 ################################################################################
 ZSH_COMPLETION_CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/zsh/completions"
@@ -52,7 +61,6 @@ setopt no_flow_control
 # fzf configuration (before plugins)
 ################################################################################
 # Enhanced Ctrl+R history search
-export FZF_BASE=/home/linuxbrew/.linuxbrew/opt/fzf/
 export FZF_CTRL_R_OPTS="--preview 'echo {}' --preview-window up:3:wrap --bind 'ctrl-/:toggle-preview' --border"
 export FZF_DEFAULT_OPTS="--height=40% --layout=reverse --border --bind 'ctrl-/:toggle-preview'"
 
@@ -77,8 +85,8 @@ bindkey '^[[A' history-substring-search-up
 bindkey '^[OA' history-substring-search-up
 bindkey '^[[B' history-substring-search-down
 bindkey '^[OB' history-substring-search-down
-bindkey "$terminfo[kcuu1]" history-substring-search-up
-bindkey "$terminfo[kcud1]" history-substring-search-down
+[[ -n "$terminfo[kcuu1]" ]] && bindkey "$terminfo[kcuu1]" history-substring-search-up
+[[ -n "$terminfo[kcud1]" ]] && bindkey "$terminfo[kcud1]" history-substring-search-down
 
 ################################################################################
 # Enhanced History Configuration
@@ -115,11 +123,6 @@ zstyle ':fzf-tab:*' switch-group '<' '>'
 bindkey -rpM viins '^[^['
 
 ################################################################################
-# Named Directories
-################################################################################
-hash -d srv=/mnt/data1/scratch
-
-################################################################################
 # GPG/SSH
 ################################################################################
 
@@ -134,17 +137,12 @@ fi
 ################################################################################
 # alias/fns
 ################################################################################
-if [ -f "${HOME}/.config/aliases.sh" ]; then . "${HOME}/.config/aliases.sh"; fi
+[[ -f "${HOME}/.config/aliases.sh" ]] && source "${HOME}/.config/aliases.sh"
 
 ################################################################################
 # golang
 ################################################################################
 [[ -s "${HOME}/.gvm/scripts/gvm" ]] && source "${HOME}/.gvm/scripts/gvm"
-
-################################################################################
-# homebrew
-################################################################################
-[[ -f /home/linuxbrew/.linuxbrew/bin/brew ]] && eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 
 ################################################################################
 # API Keys (loaded from ~/.secrets - not tracked in dotfiles repo)
@@ -157,14 +155,27 @@ if [ -f "${HOME}/.config/aliases.sh" ]; then . "${HOME}/.config/aliases.sh"; fi
 [[ -f "${HOME}/.zshrc.local" ]] && source "${HOME}/.zshrc.local"
 
 # x-cmd - only source once (guarded to prevent duplicate loading)
-[[ -z "$X_CMD_SOURCED" ]] && [ -f "$HOME/.x-cmd.root/X" ] && . "$HOME/.x-cmd.root/X" && export X_CMD_SOURCED=1
+[[ -z "$X_CMD_SOURCED" ]] && [[ -f "$HOME/.x-cmd.root/X" ]] && . "$HOME/.x-cmd.root/X" && export X_CMD_SOURCED=1
 
 ################################################################################
 # node / nvm (heavy — loaded here for interactive shells only, not in .zshenv)
 ################################################################################
 [[ -s "$NVM_DIR/nvm.sh" ]] && \. "$NVM_DIR/nvm.sh"
 
-eval "$(oh-my-posh init zsh --config $HOME/.local/share/omp-manager/themes/froczh.omp.json)" # [omp-manager]
+################################################################################
+# prompt (oh-my-posh)
+# OMP_THEME_DIR comes from the OS-specific rc sidecar; change the filename
+# below to switch themes on all machines at once.
+################################################################################
+OMP_THEME_NAME="froczh.omp.json"
+if command -v oh-my-posh >/dev/null 2>&1; then
+  if [[ -n "$OMP_THEME_DIR" && -f "$OMP_THEME_DIR/$OMP_THEME_NAME" ]]; then
+    eval "$(oh-my-posh init zsh --config "$OMP_THEME_DIR/$OMP_THEME_NAME")"
+  else
+    eval "$(oh-my-posh init zsh)"
+  fi
+fi
+
 #compdef opencode
 ###-begin-opencode-completions-###
 #
@@ -193,4 +204,4 @@ fi
 ###-end-opencode-completions-###
 
 # bun completions
-[ -s "/home/mj/.oh-my-zsh/completions/_bun" ] && source "/home/mj/.oh-my-zsh/completions/_bun"
+[[ -s "$HOME/.oh-my-zsh/completions/_bun" ]] && source "$HOME/.oh-my-zsh/completions/_bun"
