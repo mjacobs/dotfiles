@@ -1,3 +1,5 @@
+# Added by ForgeCode installer
+export PATH="/home/mj/.local/bin:$PATH"
 ################################################################################
 # zsh stuff
 ################################################################################
@@ -7,8 +9,8 @@
 # before plugins load)
 ################################################################################
 case "$OSTYPE" in
-  darwin*) [[ -f "${HOME}/.config/zsh/rc.macos.zsh" ]] && source "${HOME}/.config/zsh/rc.macos.zsh" ;;
-  linux*)  [[ -f "${HOME}/.config/zsh/rc.linux.zsh" ]] && source "${HOME}/.config/zsh/rc.linux.zsh" ;;
+darwin*) [[ -f "${HOME}/.config/zsh/rc.macos.zsh" ]] && source "${HOME}/.config/zsh/rc.macos.zsh" ;;
+linux*) [[ -f "${HOME}/.config/zsh/rc.linux.zsh" ]] && source "${HOME}/.config/zsh/rc.linux.zsh" ;;
 esac
 
 ################################################################################
@@ -205,3 +207,28 @@ fi
 
 # bun completions
 [[ -s "$HOME/.oh-my-zsh/completions/_bun" ]] && source "$HOME/.oh-my-zsh/completions/_bun"
+
+# >>> forge initialize >>>
+# !! Contents within this block are managed by 'forge zsh setup' !!
+# !! Do not edit manually - changes will be overwritten !!
+
+# Add required zsh plugins if not already present, but only when forge is installed
+if command -v forge >/dev/null 2>&1; then
+    if [[ ! " ${plugins[@]} " =~ " zsh-autosuggestions " ]]; then
+        plugins+=(zsh-autosuggestions)
+    fi
+    if [[ ! " ${plugins[@]} " =~ " zsh-syntax-highlighting " ]]; then
+        plugins+=(zsh-syntax-highlighting)
+    fi
+
+    # Load forge shell plugin (commands, completions, keybindings) if not already loaded
+    if [[ -z "$_FORGE_PLUGIN_LOADED" ]]; then
+        eval "$(forge zsh plugin)"
+    fi
+
+    # Load forge shell theme (prompt with AI context) if not already loaded
+    if [[ -z "$_FORGE_THEME_LOADED" ]]; then
+        eval "$(forge zsh theme)"
+    fi
+fi
+# <<< forge initialize <<<

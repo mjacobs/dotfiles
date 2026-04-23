@@ -13,6 +13,10 @@ export RIPGREP_CONFIG_PATH="$HOME/.ripgreprc"
 
 # pnpm needs this env var for global installs
 export PNPM_HOME="${HOME}/.local/share/pnpm"
+case ":$PATH:" in
+*":$PNPM_HOME:"*) ;;
+*) export PATH="$PNPM_HOME:$PATH" ;;
+esac
 
 # cargo/rustup — prepends ~/.cargo/bin (takes priority over system rustc)
 [[ -s "$HOME/.cargo/env" ]] && . "$HOME/.cargo/env"
@@ -26,6 +30,6 @@ export NVM_DIR="$HOME/.nvm"
 # OS-specific env (Homebrew, Java, Android, extra PATH entries)
 ################################################################################
 case "$OSTYPE" in
-  darwin*) [[ -f "${HOME}/.config/zsh/env.macos.zsh" ]] && source "${HOME}/.config/zsh/env.macos.zsh" ;;
-  linux*)  [[ -f "${HOME}/.config/zsh/env.linux.zsh" ]] && source "${HOME}/.config/zsh/env.linux.zsh" ;;
+darwin*) [[ -f "${HOME}/.config/zsh/env.macos.zsh" ]] && source "${HOME}/.config/zsh/env.macos.zsh" ;;
+linux*) [[ -f "${HOME}/.config/zsh/env.linux.zsh" ]] && source "${HOME}/.config/zsh/env.linux.zsh" ;;
 esac
