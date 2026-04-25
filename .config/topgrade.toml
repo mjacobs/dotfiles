@@ -22,7 +22,16 @@ pre_sudo = true
 # sudo_command = "sudo"
 
 # Disable specific steps - same options as the command line flag
-disable = ["nix"]
+disable = [
+  "nix",
+  "jetbrains_datagrip",
+  "jetbrains_goland",
+  "jetbrains_pycharm",
+  "jetbrains_rustrover",
+  "jetbrains_toolbox",
+  "jetbrains_webstorm",
+  "gcloud"
+]
 
 # Ignore failures for these steps
 # ignore_failures = ["powershell"]
