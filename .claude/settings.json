@@ -5,21 +5,12 @@
     "command": "bash ~/.claude/statusline-command.sh"
   },
   "enabledPlugins": {
-    "lua-lsp@claude-plugins-official": false,
-    "rust-analyzer-lsp@claude-plugins-official": false,
-    "vercel-plugin@vercel-vercel-plugin": false
   },
   "extraKnownMarketplaces": {
     "unifi-plugins": {
       "source": {
         "source": "github",
         "repo": "sirkirby/unifi-mcp"
-      }
-    },
-    "vercel-vercel-plugin": {
-      "source": {
-        "source": "directory",
-        "path": "/home/mj/.cache/plugins/.install-staging/a27f04a883589e1b9b58101ca137c1bf7a65bb23/claude-code/repo"
       }
     }
   },
@@ -29,6 +20,6 @@
     "mode": "hold"
   },
   "skipDangerousModePermissionPrompt": true,
-  "voiceEnabled": true,
-  "agentPushNotifEnabled": true
+  "agentPushNotifEnabled": true,
+  "voiceEnabled": true
 }
