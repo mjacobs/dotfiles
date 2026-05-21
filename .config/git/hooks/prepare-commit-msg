@@ -1,0 +1,218 @@
+#!/usr/bin/env python3
+"""Suggest a commit message from the staged diff using an OpenAI-compatible API."""
+
+from __future__ import annotations
+
+import json
+import os
+import subprocess
+import sys
+import urllib.error
+import urllib.request
+
+
+SKIP_SOURCES = {"message", "commit", "merge", "squash"}
+DEFAULT_MODEL = "gpt-5.4-nano"
+DEFAULT_BASE_URL = "https://api.openai.com/v1"
+
+
+def git(*args: str) -> str:
+    return subprocess.check_output(
+        ["git", *args],
+        stderr=subprocess.DEVNULL,
+        text=True,
+    )
+
+
+def run_local_hook(hook_name: str, hook_args: list[str]) -> int:
+    try:
+        git_dir = git("rev-parse", "--path-format=absolute", "--git-common-dir").strip()
+    except subprocess.SubprocessError:
+        return 0
+
+    if not git_dir:
+        return 0
+    hook_path = os.path.join(git_dir, "hooks", hook_name)
+
+    current_hook = os.path.abspath(sys.argv[0])
+    try:
+        if os.path.samefile(hook_path, current_hook):
+            return 0
+    except OSError:
+        pass
+
+    if not os.path.isfile(hook_path) or not os.access(hook_path, os.X_OK):
+        return 0
+    return subprocess.run([hook_path, *hook_args], check=False).returncode
+
+
+def has_staged_changes() -> bool:
+    return subprocess.run(
+        ["git", "diff", "--cached", "--quiet", "--no-ext-diff"],
+        stderr=subprocess.DEVNULL,
+        check=False,
+    ).returncode == 1
+
+
+def has_non_comment_content(message_path: str) -> bool:
+    try:
+        with open(message_path, "r", encoding="utf-8") as message_file:
+            for line in message_file:
+                stripped = line.strip()
+                if stripped and not stripped.startswith("#"):
+                    return True
+    except OSError:
+        return True
+    return False
+
+
+def staged_context(max_chars: int) -> str:
+    stat = git("diff", "--cached", "--stat", "--summary", "--find-renames")
+    diff = git(
+        "diff",
+        "--cached",
+        "--find-renames",
+        "--unified=2",
+        "--no-ext-diff",
+        "--no-color",
+    )
+    context = f"STAGED FILE SUMMARY:\n{stat}\n\nSTAGED DIFF:\n{diff}"
+    if len(context) <= max_chars:
+        return context
+    return (
+        context[:max_chars]
+        + "\n\n[Diff truncated by prepare-commit-msg hook before sending to LLM.]"
+    )
+
+
+def first_choice_text(response_body: bytes) -> str:
+    payload = json.loads(response_body.decode("utf-8"))
+    choices = payload.get("choices") or []
+    if not choices:
+        return ""
+    message = choices[0].get("message") or {}
+    content = message.get("content") or ""
+    if isinstance(content, list):
+        return "".join(part.get("text", "") for part in content if isinstance(part, dict))
+    return str(content)
+
+
+def clean_message(text: str) -> str:
+    lines = [line.rstrip() for line in text.strip().splitlines()]
+    while lines and not lines[0]:
+        lines.pop(0)
+    while lines and not lines[-1]:
+        lines.pop()
+    if lines and lines[0].startswith("```"):
+        lines = lines[1:]
+    if lines and lines[-1].startswith("```"):
+        lines = lines[:-1]
+    return "\n".join(lines).strip()
+
+
+def request_commit_message(context: str) -> str:
+    api_key = (
+        os.environ.get("COMMIT_MSG_LLM_API_KEY")
+        or os.environ.get("OPENAI_API_KEY")
+        or os.environ.get("LLM_API_KEY")
+    )
+    if not api_key:
+        raise RuntimeError("OPENAI_API_KEY is not set")
+
+    base_url = (
+        os.environ.get("COMMIT_MSG_LLM_BASE_URL")
+        or os.environ.get("OPENAI_BASE_URL")
+        or DEFAULT_BASE_URL
+    ).rstrip("/")
+    model = (
+        os.environ.get("COMMIT_MSG_LLM_MODEL")
+        or os.environ.get("OPENAI_MODEL")
+        or DEFAULT_MODEL
+    )
+    timeout = float(os.environ.get("COMMIT_MSG_LLM_TIMEOUT", "8"))
+
+    body = {
+        "model": model,
+        "max_completion_tokens": 120,
+        "messages": [
+            {
+                "role": "system",
+                "content": (
+                    "You write concise Git commit messages. Return only the commit "
+                    "message, no markdown. Use an imperative subject under 72 "
+                    "characters. Add a body only if it clarifies important intent."
+                ),
+            },
+            {
+                "role": "user",
+                "content": (
+                    "Propose a commit message for these staged changes:\n\n"
+                    + context
+                ),
+            },
+        ],
+    }
+    request = urllib.request.Request(
+        f"{base_url}/chat/completions",
+        data=json.dumps(body).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+    with urllib.request.urlopen(request, timeout=timeout) as response:
+        return clean_message(first_choice_text(response.read()))
+
+
+def error_summary(error: Exception) -> str:
+    if isinstance(error, urllib.error.HTTPError):
+        try:
+            detail = error.read().decode("utf-8", errors="replace").strip()
+        except OSError:
+            detail = ""
+        if detail:
+            return f"{error}: {detail}"
+    return str(error)
+
+
+def prepend_message(message_path: str, proposed_message: str) -> None:
+    with open(message_path, "r", encoding="utf-8") as message_file:
+        original = message_file.read()
+    with open(message_path, "w", encoding="utf-8") as message_file:
+        message_file.write(proposed_message)
+        message_file.write("\n\n")
+        message_file.write(original)
+
+
+def main() -> int:
+    hook_name = os.path.basename(sys.argv[0])
+    local_hook_status = run_local_hook(hook_name, sys.argv[1:])
+    if local_hook_status != 0:
+        return local_hook_status
+    if hook_name != "prepare-commit-msg":
+        return 0
+
+    if os.environ.get("COMMIT_MSG_LLM", "").lower() in {"0", "false", "off", "no"}:
+        return 0
+
+    message_path = sys.argv[1] if len(sys.argv) > 1 else ""
+    source = sys.argv[2] if len(sys.argv) > 2 else ""
+    if not message_path or source in SKIP_SOURCES:
+        return 0
+    if has_non_comment_content(message_path) or not has_staged_changes():
+        return 0
+
+    try:
+        max_chars = int(os.environ.get("COMMIT_MSG_LLM_MAX_CHARS", "12000"))
+        proposed_message = request_commit_message(staged_context(max_chars))
+        if proposed_message:
+            prepend_message(message_path, proposed_message)
+    except (OSError, subprocess.SubprocessError, urllib.error.URLError, ValueError, RuntimeError) as error:
+        print(f"prepare-commit-msg: LLM suggestion skipped: {error_summary(error)}", file=sys.stderr)
+
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
