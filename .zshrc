@@ -183,7 +183,7 @@ if command -v carapace >/dev/null 2>&1; then
 
   # Carapace is broad by design; keep generated/native completions in front for
   # the tools this config explicitly caches.
-  if (( $+functions[compdef] )); then
+  if (($+functions[compdef])); then
     _zsh_native_completion_pairs=(
       cargo:_cargo
       docker:_docker
@@ -196,13 +196,68 @@ if command -v carapace >/dev/null 2>&1; then
       rustup:_rustup
       tailscale:_tailscale
       task:_task
+      # Path-heavy commands: carapace 1.6.6+ double-escapes spaces in zsh
+      # output, so restore native completion for the common file tools.
+      cat:_cat
+      ls:_ls
+      cp:_cp
+      mv:_mv
+      rm:_rm
+      ln:_ln
+      mkdir:_mkdir
+      rmdir:_rmdir
+      touch:_touch
+      chmod:_chmod
+      chown:_chown
+      stat:_stat
+      head:_head
+      tail:_tail
+      less:_less
+      vim:_vim
+      vi:_vi
+      find:_find
+      tree:_tree
+      tar:_tar
+      zip:_zip
+      gzip:_gzip
+      grep:_grep
+      du:_du
+      wc:_wc
+      diff:_diff
+      sort:_sort
+      uniq:_uniq
+      open:_open
+      jq:_jq
+      xargs:_xargs
+      readlink:_readlink
+      basename:_basename
+      rsync:_rsync
     )
     for pair in "${_zsh_native_completion_pairs[@]}"; do
       cmd="${pair%%:*}"
       comp="${pair#*:}"
       whence -w "$comp" >/dev/null 2>&1 && compdef "$comp" "$cmd"
     done
-    unset cmd comp pair _zsh_native_completion_pairs
+    # Tools without a native zsh completer: fall back to plain file completion
+    # rather than carapace (still avoids the double-escape bug).
+    _zsh_files_only_cmds=(
+      nvim
+      nano
+      bat
+      lsd
+      rg
+      fd
+      more
+      unzip
+      gunzip
+      xdg-open
+      realpath
+      dirname
+    )
+    for cmd in "${_zsh_files_only_cmds[@]}"; do
+      compdef _files "$cmd"
+    done
+    unset cmd comp pair _zsh_native_completion_pairs _zsh_files_only_cmds
   fi
 fi
 
@@ -232,9 +287,9 @@ compdebug() {
   echo
   echo "carapace:"
   if command -v carapace >/dev/null 2>&1; then
-    carapace "$cmd" --help >/dev/null 2>&1 \
-      && echo "Carapace appears to know about $cmd" \
-      || echo "No obvious Carapace completer for $cmd"
+    carapace "$cmd" --help >/dev/null 2>&1 &&
+      echo "Carapace appears to know about $cmd" ||
+      echo "No obvious Carapace completer for $cmd"
   else
     echo "carapace not installed"
   fi
@@ -361,10 +416,8 @@ fi
 # Mise
 eval "$(/usr/bin/mise activate zsh)"
 
-# >>> splashboard >>>
-eval "$(splashboard init zsh)"
-# <<< splashboard <<<
-
-. "$HOME/.atuin/bin/env"
-
-eval "$(atuin init zsh)"
+#####################################################################################
+# atuin (disabled; unpleasant UX...)
+#####################################################################################
+# . "$HOME/.atuin/bin/env"
+# eval "$(atuin init zsh)"

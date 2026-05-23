@@ -3,3 +3,5 @@
 -- Add any additional options here
 
 vim.g.python3_host_prog = vim.fn.expand("~/.venv/bin/python3")
+
+vim.opt.clipboard = "unnamedplus"

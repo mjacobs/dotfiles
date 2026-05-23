@@ -1,11 +1,10 @@
+-- Only overrides; the lang.* extras already register these servers.
 return {
   "neovim/nvim-lspconfig",
   ---@class PluginLspOpts
   opts = {
     ---@type lspconfig.options
     servers = {
-      basedpyright = {},
-      ruff = {},
       lua_ls = {
         settings = {
           Lua = {
@@ -18,7 +17,8 @@ return {
         settings = {
           ["rust-analyzer"] = {
             cargo = { allFeatures = true },
-            checkOnSave = { command = "clippy" },
+            checkOnSave = true,
+            check = { command = "clippy" },
           },
         },
       },
@@ -30,8 +30,6 @@ return {
           },
         },
       },
-      ts_ls = {},
-      bashls = {},
     },
   },
 }
