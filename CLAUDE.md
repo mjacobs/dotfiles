@@ -25,9 +25,9 @@ yadm push
 
 ### Zsh Configuration Load Order
 
-1. `.zshenv` - PATH setup, nvm initialization (runs for all shells)
+1. `.zshenv` - PATH setup (runs for all shells)
 2. `.zprofile` - Environment vars like LANG, EDITOR (login shells)
-3. `.zshrc` - Interactive shell config: oh-my-zsh, plugins, aliases
+3. `.zshrc` - Interactive shell config: oh-my-zsh, plugins, aliases, mise activation
 
 ### Key Files
 
@@ -79,10 +79,25 @@ GPG is used for commit signing only. SSH authentication uses ssh-agent (started 
 
 ### Languages & Version Managers
 
-- **Node.js**: via nvm (managed in `.zshenv`)
-- **Rust**: via rustup, cargo in `~/.cargo/bin`
-- **Go**: via gvm (sourced in `.zshrc`)
-- **Python**: system python3 + Linuxbrew
+[mise](https://mise.jdx.dev) is the unified runtime/version manager (activated in `.zshrc`,
+config in `~/.config/mise/config.toml`). It replaced the old nvm/gvm setup. **Prefer mise
+over Homebrew** when a tool is available in both — see the decision tree below.
+
+- **Node.js**: via mise
+- **Go**: via mise
+- **Python**: via mise (multiple versions managed)
+- **Rust**: via rustup, cargo in `~/.cargo/bin` (not mise)
+
+### Picking a Package Manager
+
+Assign each axis one tool; don't let them bleed into each other:
+
+| Axis | Question | Use | Never use |
+|------|----------|-----|-----------|
+| Project deps | Does my code import/link it? | per-project, pinned: `uv` (py), `pnpm` (node), `cargo` (rust), `go mod` | global `pip install`, `npm -g` |
+| Runtimes | The interpreter/compiler/SDK itself? | `mise` | nvm, gvm, pyenv |
+| System & libs | A `-devel` lib, GUI/desktop app, or something other software links? | `dnf` | Homebrew (drags in a duplicate native stack + its `pkg-config` shadows the system one) |
+| Standalone CLI | A tool you run from the shell? | `dnf` if fresh enough, else `mise`, else `brew` | — |
 
 ### Package Managers
 

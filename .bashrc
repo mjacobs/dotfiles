@@ -137,7 +137,6 @@ fi
 
 PATH=/sbin:$HOME/.local/google-cloud-sdk/bin:$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:/usr/local/games:/usr/games:$HOME/.local/share/JetBrains/Toolbox/scripts:$HOME/.emacs.d/bin:$HOME/go/bin:/snap/bin
 
-[[ -s "$HOME/.gvm/scripts/gvm" ]] && source "$HOME/.gvm/scripts/gvm"
 #eval "$(/bin/brew shellenv)"
 
 # -f "$HOME/.shelloracle.bash" ] && source "$HOME/.shelloracle.bash"

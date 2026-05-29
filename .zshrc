@@ -319,11 +319,6 @@ fi
 [[ -f "${HOME}/.config/aliases.sh" ]] && source "${HOME}/.config/aliases.sh"
 
 ################################################################################
-# golang
-################################################################################
-[[ -s "${HOME}/.gvm/scripts/gvm" ]] && source "${HOME}/.gvm/scripts/gvm"
-
-################################################################################
 # API Keys (loaded from ~/.secrets - not tracked in dotfiles repo)
 ################################################################################
 [[ -f "${HOME}/.secrets" ]] && source "${HOME}/.secrets"
@@ -412,9 +407,6 @@ if [[ -z "$_FORGE_THEME_LOADED" ]]; then
   eval "$(forge zsh theme)"
 fi
 # <<< forge initialize <<<
-
-# Mise
-eval "$(/usr/bin/mise activate zsh)"
 
 #####################################################################################
 # atuin (disabled; unpleasant UX...)

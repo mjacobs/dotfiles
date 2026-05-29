@@ -2,7 +2,7 @@
 
 # Get the aliases and functions
 if [ -f ~/.bashrc ]; then
-  . ~/.bashrc
+  . "$HOME/.bashrc"
 fi
 
 # User specific environment and startup programs
@@ -10,4 +10,6 @@ fi
 
 export PATH="$HOME/.local/bin:$PATH:$HOME/.lmstudio/bin"
 
-. "$HOME/.atuin/bin/env"
+
+# Added by Antigravity CLI installer
+export PATH="/home/mj/.local/bin:$PATH"
