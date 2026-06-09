@@ -30,7 +30,9 @@ disable = [
   "jetbrains_rustrover",
   "jetbrains_toolbox",
   "jetbrains_webstorm",
-  "gcloud"
+  "gcloud",
+  "uv", # mise-managed
+  "tmux" # mise-managed
 ]
 
 # Ignore failures for these steps
@@ -126,6 +128,11 @@ cleanup = true
 [commands]
 # "Python Environment" = "~/dev/.env/bin/pip install -i https://pypi.python.org/simple -U --upgrade-strategy eager jupyter"
 # "Custom command using interactive shell (unix)" = "-i vim_upgrade"
+
+# Upgrade uv via mise (replaces the disabled built-in `uv self update` step).
+# mise installs the new version into a fresh dir and repoints `latest`, so it
+# never blocks on a running uvx process.
+"uv (via mise)" = "mise upgrade uv"
 
 
 [python]

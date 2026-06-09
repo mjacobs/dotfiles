@@ -76,11 +76,13 @@ regen_zsh_completion_if_needed() {
 }
 
 # tools that support: <tool> completion zsh
+regen_zsh_completion_if_needed bd
 regen_zsh_completion_if_needed docker
+regen_zsh_completion_if_needed kata
 regen_zsh_completion_if_needed kubectl
-regen_zsh_completion_if_needed tailscale
-regen_zsh_completion_if_needed openclaw
 regen_zsh_completion_if_needed mise
+regen_zsh_completion_if_needed openclaw
+regen_zsh_completion_if_needed tailscale
 
 # regen_zsh_completion_if_needed helm
 # regen_zsh_completion_if_needed kind

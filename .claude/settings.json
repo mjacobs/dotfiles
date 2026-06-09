@@ -1,22 +1,53 @@
 {
   "cleanupPeriodDays": 365,
-  "model": "opus",
+  "permissions": {
+    "allow": [
+      "mcp__codegraph__codegraph_search",
+      "mcp__codegraph__codegraph_context",
+      "mcp__codegraph__codegraph_callers",
+      "mcp__codegraph__codegraph_callees",
+      "mcp__codegraph__codegraph_impact",
+      "mcp__codegraph__codegraph_node",
+      "mcp__codegraph__codegraph_status",
+      "Bash(bd show *)",
+      "Bash(bd ready)",
+      "Bash(bd ready *)",
+      "Bash(bd list)",
+      "Bash(bd list *)",
+      "Bash(bd tree)",
+      "Bash(bd tree *)",
+      "Bash(bd stats)",
+      "Bash(bd stats *)",
+      "Bash(bd search *)",
+      "Bash(bd memories)",
+      "Bash(bd memories *)",
+      "Bash(dig *)",
+      "Bash(kata list)",
+      "Bash(kata list *)",
+      "Bash(pnpm typecheck)",
+      "Bash(pnpm test)"
+    ]
+  },
+  "model": "claude-fable-5[1m]",
   "statusLine": {
     "type": "command",
     "command": "bash ~/.claude/statusline-command.sh"
   },
   "enabledPlugins": {
     "unifi-network@unifi-plugins": true,
-    "rust-analyzer-lsp@claude-plugins-official": true
+    "rust-analyzer-lsp@claude-plugins-official": false
   },
   "effortLevel": "high",
-  "autoUpdatesChannel": "stable",
+  "tui": "fullscreen",
   "voice": {
     "enabled": true,
     "mode": "hold"
   },
   "skipDangerousModePermissionPrompt": true,
-  "theme": "auto",
+  "theme": "dark-daltonized",
+  "editorMode": "normal",
+  "verbose": true,
+  "preferredNotifChannel": "ghostty",
   "remoteControlAtStartup": true,
   "inputNeededNotifEnabled": true,
   "agentPushNotifEnabled": true,

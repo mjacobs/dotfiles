@@ -1,14 +1,16 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code (claude.ai/code) when working with
+code in this repository.
 
 ## Overview
 
-Personal dotfiles managed with [yadm](https://yadm.io). Remote: <https://github.com/mjacobs/dotfiles>
+Personal dotfiles managed with [yadm](https://yadm.io). Remote:
+<https://github.com/mjacobs/dotfiles>
 
 ## System
 
-- **OS**: Fedora 43 (KDE Plasma Desktop Edition)
+- **OS**: Fedora 44 (KDE Plasma Desktop Edition)
 - **Host**: private-host
 - **Shell**: zsh (primary), bash (fallback)
 
@@ -27,28 +29,34 @@ yadm push
 
 1. `.zshenv` - PATH setup (runs for all shells)
 2. `.zprofile` - Environment vars like LANG, EDITOR (login shells)
-3. `.zshrc` - Interactive shell config: oh-my-zsh, plugins, aliases, mise activation
+3. `.zshrc` - Interactive shell config: oh-my-zsh, plugins, aliases, mise
+   activation
 
 ### Key Files
 
-- `~/.zshrc` → oh-my-zsh plugins, GPG/SSH agent setup, homebrew, oh-my-posh prompt
+- `~/.zshrc` → oh-my-zsh plugins, GPG/SSH agent setup, homebrew, oh-my-posh
+  prompt
 - `~/.zshenv` → PATH additions (`.local/bin`, JetBrains, gcloud, bun, cargo)
 - `~/.config/aliases.sh` → Custom aliases (sourced by .zshrc)
 - `~/.config/nvim/` → Neovim config (LazyVim-based)
-- `~/.gitconfig` → Git aliases (`lg`, `l1-l5`), delta pager, gh credential helper
-- `~/.tmux.conf` → Tmux config with TPM and tmux-powerkit (catppuccin mocha theme)
+- `~/.gitconfig` → Git aliases (`lg`, `l1-l5`), delta pager, gh credential
+  helper
+- `~/.tmux.conf` → Tmux config with TPM and tmux-powerkit (catppuccin mocha
+  theme)
 - `~/.secrets` → API keys (NOT tracked - create manually on new machines)
 
 ### Oh-My-Zsh Plugins (in order)
 
-`fzf`, `fzf-tab`, `git`, `history-substring-search`, `zsh-autosuggestions`, `zsh-syntax-highlighting`, `zsh-shift-select`
+`fzf`, `fzf-tab`, `git`, `history-substring-search`, `zsh-autosuggestions`,
+`zsh-syntax-highlighting`, `zsh-shift-select`
 
 Custom plugins are in `~/.oh-my-zsh/custom/plugins/`.
 
 ### History Configuration
 
 - **HISTSIZE/SAVEHIST**: 100,000 entries (both in-memory and on-disk)
-- **Key options**: `INC_APPEND_HISTORY` (write immediately), `HIST_FIND_NO_DUPS`, `HIST_IGNORE_ALL_DUPS`
+- **Key options**: `INC_APPEND_HISTORY` (write immediately),
+  `HIST_FIND_NO_DUPS`, `HIST_IGNORE_ALL_DUPS`
 - **Search**: Up/Down arrows use substring search, Ctrl+R uses fzf with preview
 
 ### Completion Configuration
@@ -63,25 +71,28 @@ Uses oh-my-posh with theme at `~/.cache/oh-my-posh/themes/kushal.omp.json`.
 
 ### Secrets Management
 
-API keys are in `~/.secrets` (chmod 600), sourced by `.zshrc`. This file is gitignored and must be created manually on each machine.
+API keys are in `~/.secrets` (chmod 600), sourced by `.zshrc`. This file is
+gitignored and must be created manually on each machine.
 
 ### Notable Aliases
 
 - `cat` → `bat`, `vim` → `nvim`, `ls` → `lsd`
 - `c`/`v` → xclip copy/paste
-- `g` → glances, `j` → journalctl, `s` → systemctl
+- `g` → glow (markdown reader), `j` → journalctl, `s` → systemctl
 
 ### GPG/SSH
 
-GPG is used for commit signing only. SSH authentication uses ssh-agent (started in `.zshrc` if `$SSH_AUTH_SOCK` is missing).
+GPG is used for commit signing only. SSH authentication uses ssh-agent (started
+in `.zshrc` if `$SSH_AUTH_SOCK` is missing).
 
 ## Development Environment
 
 ### Languages & Version Managers
 
-[mise](https://mise.jdx.dev) is the unified runtime/version manager (activated in `.zshrc`,
-config in `~/.config/mise/config.toml`). It replaced the old nvm/gvm setup. **Prefer mise
-over Homebrew** when a tool is available in both — see the decision tree below.
+[mise](https://mise.jdx.dev) is the unified runtime/version manager (activated
+in `.zshrc`, config in `~/.config/mise/config.toml`). It replaced the old
+nvm/gvm setup. **Prefer mise over Homebrew** when a tool is available in both —
+see the decision tree below.
 
 - **Node.js**: via mise
 - **Go**: via mise
@@ -92,12 +103,12 @@ over Homebrew** when a tool is available in both — see the decision tree below
 
 Assign each axis one tool; don't let them bleed into each other:
 
-| Axis | Question | Use | Never use |
-|------|----------|-----|-----------|
-| Project deps | Does my code import/link it? | per-project, pinned: `uv` (py), `pnpm` (node), `cargo` (rust), `go mod` | global `pip install`, `npm -g` |
-| Runtimes | The interpreter/compiler/SDK itself? | `mise` | nvm, gvm, pyenv |
-| System & libs | A `-devel` lib, GUI/desktop app, or something other software links? | `dnf` | Homebrew (drags in a duplicate native stack + its `pkg-config` shadows the system one) |
-| Standalone CLI | A tool you run from the shell? | `dnf` if fresh enough, else `mise`, else `brew` | — |
+| Axis           | Question                                                            | Use                                                                     | Never use                                                                              |
+| -------------- | ------------------------------------------------------------------- | ----------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| Project deps   | Does my code import/link it?                                        | per-project, pinned: `uv` (py), `pnpm` (node), `cargo` (rust), `go mod` | global `pip install`, `npm -g`                                                         |
+| Runtimes       | The interpreter/compiler/SDK itself?                                | `mise`                                                                  | nvm, gvm, pyenv                                                                        |
+| System & libs  | A `-devel` lib, GUI/desktop app, or something other software links? | `dnf`                                                                   | Homebrew (drags in a duplicate native stack + its `pkg-config` shadows the system one) |
+| Standalone CLI | A tool you run from the shell?                                      | `dnf` if fresh enough, else `mise`, else `brew`                         | —                                                                                      |
 
 ### Package Managers
 
@@ -108,7 +119,8 @@ Assign each axis one tool; don't let them bleed into each other:
 
 ### Project Directories
 
-- `~/dev/` - Main development directory across all projects (largely unrelated to one another)
+- `~/dev/` - Main development directory across all projects (largely unrelated
+  to one another)
 
 ## Tool Preferences
 
@@ -120,8 +132,8 @@ Prefer modern rust/go alternatives to classic Unix tools:
 - `lsd` instead of `ls` (icons, colors)
 - `delta` for git diffs (side-by-side, syntax highlighting)
 - `fzf` for fuzzy finding everywhere
-- `glow` for markdown rendering (`catt`/`catp` aliases)
-- `glances` for system monitoring (`g` alias), but `btop` preferred for general usage.
+- `glow` for markdown rendering (`g` alias)
+- `btop` for system monitoring.
 
 ### Editor
 
@@ -133,7 +145,8 @@ Prefer modern rust/go alternatives to classic Unix tools:
 - `pull.rebase = true` - always rebase on pull
 - `merge.conflictstyle = zdiff3` - better conflict markers
 - `gh` CLI for GitHub authentication
-- Useful aliases: `lg` (graph log), `l1`-`l5` (various log formats), `gsp` (stash-pull-pop)
+- Useful aliases: `l2` (graph log), `l1`-`l5` (various log formats)
+- Wrap commit message body text at 80 columns
 
 ## Setting Up on a New Machine
 
@@ -180,9 +193,17 @@ git clone https://github.com/le0me55i/zsh-shift-select ${ZSH_CUSTOM:-~/.oh-my-zs
 
 ## gstack
 
-Use the `/browse` skill from gstack for all web browsing. Never use `mcp__claude-in-chrome__*` tools.
+Use the `/browse` skill from gstack for all web browsing. Never use
+`mcp__claude-in-chrome__*` tools.
 
-Available gstack skills: `/office-hours`, `/plan-ceo-review`, `/plan-eng-review`, `/plan-design-review`, `/design-consultation`, `/design-shotgun`, `/design-html`, `/review`, `/ship`, `/land-and-deploy`, `/canary`, `/benchmark`, `/browse`, `/connect-chrome`, `/qa`, `/qa-only`, `/design-review`, `/setup-browser-cookies`, `/setup-deploy`, `/setup-gbrain`, `/retro`, `/investigate`, `/document-release`, `/codex`, `/cso`, `/autoplan`, `/plan-devex-review`, `/devex-review`, `/careful`, `/freeze`, `/guard`, `/unfreeze`, `/gstack-upgrade`, `/learn`
+Available gstack skills: `/office-hours`, `/plan-ceo-review`,
+`/plan-eng-review`, `/plan-design-review`, `/design-consultation`,
+`/design-shotgun`, `/design-html`, `/review`, `/ship`, `/land-and-deploy`,
+`/canary`, `/benchmark`, `/browse`, `/connect-chrome`, `/qa`, `/qa-only`,
+`/design-review`, `/setup-browser-cookies`, `/setup-deploy`, `/setup-gbrain`,
+`/retro`, `/investigate`, `/document-release`, `/codex`, `/cso`, `/autoplan`,
+`/plan-devex-review`, `/devex-review`, `/careful`, `/freeze`, `/guard`,
+`/unfreeze`, `/gstack-upgrade`, `/learn`
 
 ## Style Preferences
 
