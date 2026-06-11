@@ -191,6 +191,24 @@ git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:
 git clone https://github.com/le0me55i/zsh-shift-select ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-shift-select
 ```
 
+## Cross-Agent Session History (agentsview)
+
+The agentsview MCP tools search recorded sessions from ALL coding agents
+(Claude Code, Codex, Gemini, Antigravity) across all projects and machines.
+Reach for them proactively when:
+
+- A problem or error feels like it may have been encountered before — run
+  `search_sessions` (keywords) or `search_content` (exact error strings,
+  identifiers, regex) before re-deriving a solution.
+- Asked about past work, prior sessions, or "what did I/we do about X" —
+  even if it happened in a different tool or repo.
+- Resuming work that another agent or machine may have touched.
+
+Typical loop: `search_sessions` → `get_session_overview` →
+`get_messages` anchored at the match ordinal. Results from the last 10
+minutes are excluded by default to avoid retrieving the current
+conversation.
+
 ## gstack
 
 Use the `/browse` skill from gstack for all web browsing. Never use
