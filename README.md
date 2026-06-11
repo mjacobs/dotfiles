@@ -4,7 +4,7 @@ Personal dotfiles managed with [yadm](https://yadm.io). Remote: <https://github.
 
 ## System
 
-- **OS**: Fedora 43 (KDE Plasma Desktop Edition)
+- **OS**: Fedora 44 (KDE Plasma Desktop Edition)
 - **Shell**: zsh (primary), bash (fallback)
 
 ## Common Commands
@@ -155,3 +155,35 @@ yadm decrypt || echo "No encrypted archive found (expected on first setup)"
 ### Oh-My-Zsh Plugins
 
 `fzf`, `fzf-tab`, `git`, `history-substring-search`, `zsh-autosuggestions`, `zsh-syntax-highlighting`, `zsh-shift-select`
+
+Custom plugins live in `~/.oh-my-zsh/custom/plugins/`.
+
+## Interactive Shell
+
+### History
+
+- **HISTSIZE/SAVEHIST**: 100,000 entries (both in-memory and on-disk)
+- **Key options**: `INC_APPEND_HISTORY` (write immediately),
+  `HIST_FIND_NO_DUPS`, `HIST_IGNORE_ALL_DUPS`
+- **Search**: Up/Down arrows use substring search, Ctrl+R uses fzf with preview
+
+### Completion
+
+- **fzf-tab**: Fuzzy completion with file previews (uses `bat` and `lsd`)
+- **Grouping**: Completions grouped by type with colored headers
+- **Navigation**: Use `<` and `>` to switch between completion groups
+
+### Prompt
+
+oh-my-posh with theme at `~/.cache/oh-my-posh/themes/kushal.omp.json`.
+
+### Notable Aliases
+
+- `cat` → `bat`, `vim` → `nvim`, `ls` → `lsd`
+- `c`/`v` → xclip copy/paste
+- `g` → glow (markdown reader), `j` → journalctl, `s` → systemctl
+
+### GPG/SSH
+
+GPG is used for commit signing only. SSH authentication uses ssh-agent (started
+in `.zshrc` if `$SSH_AUTH_SOCK` is missing).

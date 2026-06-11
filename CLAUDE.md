@@ -1,20 +1,13 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with
-code in this repository.
+This file provides guidance to Claude Code (claude.ai/code) when working in
+this home directory and its dotfiles.
 
-## Overview
+## Critical: This is a yadm Repo
 
-Personal dotfiles managed with [yadm](https://yadm.io). Remote:
-<https://github.com/mjacobs/dotfiles>
-
-## System
-
-- **OS**: Fedora 44 (KDE Plasma Desktop Edition)
-- **Host**: private-host
-- **Shell**: zsh (primary), bash (fallback)
-
-## Common Commands
+The home directory is **not** a plain git repo — dotfiles are managed with
+[yadm](https://yadm.io) (remote: <https://github.com/mjacobs/dotfiles>). Never
+`git init` here. Use yadm for all dotfile version control:
 
 ```bash
 yadm status
@@ -23,21 +16,31 @@ yadm commit -m "message"
 yadm push
 ```
 
-## Architecture
+Human-facing docs (new-machine setup, yadm alternates/encryption/bootstrap,
+interactive shell usage) live in `~/README.md`.
 
-### Zsh Configuration Load Order
+## System
+
+- **OS**: Fedora 44 (KDE Plasma Desktop Edition)
+- **Host**: private-host
+- **Shell**: zsh (primary), bash (fallback)
+
+## Zsh Configuration Load Order
 
 1. `.zshenv` - PATH setup (runs for all shells)
 2. `.zprofile` - Environment vars like LANG, EDITOR (login shells)
 3. `.zshrc` - Interactive shell config: oh-my-zsh, plugins, aliases, mise
    activation
 
-### Key Files
+Put new config in the right layer; don't duplicate across them.
+
+## Key Files
 
 - `~/.zshrc` → oh-my-zsh plugins, GPG/SSH agent setup, homebrew, oh-my-posh
   prompt
 - `~/.zshenv` → PATH additions (`.local/bin`, JetBrains, gcloud, bun, cargo)
-- `~/.config/aliases.sh` → Custom aliases (sourced by .zshrc)
+- `~/.config/aliases.sh` → Custom aliases (sourced by .zshrc; interactive
+  shells only — they do NOT apply in non-interactive/agent shells)
 - `~/.config/nvim/` → Neovim config (LazyVim-based)
 - `~/.gitconfig` → Git aliases (`lg`, `l1-l5`), delta pager, gh credential
   helper
@@ -45,59 +48,19 @@ yadm push
   theme)
 - `~/.secrets` → API keys (NOT tracked - create manually on new machines)
 
-### Oh-My-Zsh Plugins (in order)
+## Secrets
 
-`fzf`, `fzf-tab`, `git`, `history-substring-search`, `zsh-autosuggestions`,
-`zsh-syntax-highlighting`, `zsh-shift-select`
-
-Custom plugins are in `~/.oh-my-zsh/custom/plugins/`.
-
-### History Configuration
-
-- **HISTSIZE/SAVEHIST**: 100,000 entries (both in-memory and on-disk)
-- **Key options**: `INC_APPEND_HISTORY` (write immediately),
-  `HIST_FIND_NO_DUPS`, `HIST_IGNORE_ALL_DUPS`
-- **Search**: Up/Down arrows use substring search, Ctrl+R uses fzf with preview
-
-### Completion Configuration
-
-- **fzf-tab**: Fuzzy completion with file previews (uses `bat` and `lsd`)
-- **Grouping**: Completions grouped by type with colored headers
-- **Navigation**: Use `<` and `>` to switch between completion groups
-
-### Prompt
-
-Uses oh-my-posh with theme at `~/.cache/oh-my-posh/themes/kushal.omp.json`.
-
-### Secrets Management
-
-API keys are in `~/.secrets` (chmod 600), sourced by `.zshrc`. This file is
-gitignored and must be created manually on each machine.
-
-### Notable Aliases
-
-- `cat` → `bat`, `vim` → `nvim`, `ls` → `lsd`
-- `c`/`v` → xclip copy/paste
-- `g` → glow (markdown reader), `j` → journalctl, `s` → systemctl
-
-### GPG/SSH
-
-GPG is used for commit signing only. SSH authentication uses ssh-agent (started
-in `.zshrc` if `$SSH_AUTH_SOCK` is missing).
+API keys live in `~/.secrets` (chmod 600), sourced by `.zshrc`. Never commit
+secrets; never add them to tracked files.
 
 ## Development Environment
 
-### Languages & Version Managers
+### Runtimes
 
 [mise](https://mise.jdx.dev) is the unified runtime/version manager (activated
 in `.zshrc`, config in `~/.config/mise/config.toml`). It replaced the old
-nvm/gvm setup. **Prefer mise over Homebrew** when a tool is available in both —
-see the decision tree below.
-
-- **Node.js**: via mise
-- **Go**: via mise
-- **Python**: via mise (multiple versions managed)
-- **Rust**: via rustup, cargo in `~/.cargo/bin` (not mise)
+nvm/gvm setup. Node.js, Go, and Python come from mise; Rust comes from rustup
+(cargo in `~/.cargo/bin`, not mise).
 
 ### Picking a Package Manager
 
@@ -110,118 +73,43 @@ Assign each axis one tool; don't let them bleed into each other:
 | System & libs  | A `-devel` lib, GUI/desktop app, or something other software links? | `dnf`                                                                   | Homebrew (drags in a duplicate native stack + its `pkg-config` shadows the system one) |
 | Standalone CLI | A tool you run from the shell?                                      | `dnf` if fresh enough, else `mise`, else `brew`                         | —                                                                                      |
 
-### Package Managers
-
-- **System**: dnf (Fedora)
-- **Homebrew**: Linuxbrew at `/home/linuxbrew/.linuxbrew`
-- **Node**: pnpm (preferred), bun available
-- **Rust**: cargo
+Homebrew (Linuxbrew) lives at `/home/linuxbrew/.linuxbrew`.
 
 ### Project Directories
 
 - `~/dev/` - Main development directory across all projects (largely unrelated
   to one another)
 
-## Tool Preferences
-
-### Modern CLI Replacements
-
-Prefer modern rust/go alternatives to classic Unix tools:
-
-- `bat` instead of `cat` (syntax highlighting)
-- `lsd` instead of `ls` (icons, colors)
-- `delta` for git diffs (side-by-side, syntax highlighting)
-- `fzf` for fuzzy finding everywhere
-- `glow` for markdown rendering (`g` alias)
-- `btop` for system monitoring.
-
-### Editor
-
-- **Primary**: Neovim with LazyVim configuration
-- **Vim keybindings**: enabled in zsh (vi-mode)
-
-### Git Workflow
+## Git Workflow
 
 - `pull.rebase = true` - always rebase on pull
 - `merge.conflictstyle = zdiff3` - better conflict markers
 - `gh` CLI for GitHub authentication
-- Useful aliases: `l2` (graph log), `l1`-`l5` (various log formats)
+- GPG is used for commit signing only; SSH auth uses ssh-agent
 - Wrap commit message body text at 80 columns
 
-## Setting Up on a New Machine
+## Tool Preferences
 
-### Prerequisites
-
-```bash
-# ensure required tools are available
-brew install fzf bat delta oh-my-posh neovim
-```
-
-Also, install rust/cargo:
-
-```bash
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-```
-
-### dotfiles setup
-
-```bash
-# Install yadm
-brew install yadm
-
-# Clone and checkout (use -f if files already exist in $HOME)
-yadm clone git@github.com:mjacobs/dotfiles.git
-
-# Hide untracked files
-yadm config status.showUntrackedFiles no
-
-# Install TPM and tmux plugins
-git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
-# Then in tmux, press prefix + I to install plugins
-
-# Create ~/.secrets with your API keys
-```
-
-Clone zsh plugins:
-
-```bash
-git clone https://github.com/Aloxaf/fzf-tab ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/fzf-tab
-git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
-git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
-git clone https://github.com/le0me55i/zsh-shift-select ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-shift-select
-```
+- Editor: Neovim (LazyVim). When suggesting tooling, prefer modern
+  alternatives already installed: `bat`, `lsd`, `delta`, `fzf`, `glow`,
+  `btop`.
 
 ## Cross-Agent Session History (agentsview)
 
-The agentsview MCP tools search recorded sessions from ALL coding agents
-(Claude Code, Codex, Gemini, Antigravity) across all projects and machines.
-Reach for them proactively when:
+The agentsview MCP tools search recorded sessions from ALL coding agents (Claude
+Code, Codex, Gemini, Antigravity) across all projects and machines. Reach for
+them proactively when:
 
 - A problem or error feels like it may have been encountered before — run
   `search_sessions` (keywords) or `search_content` (exact error strings,
   identifiers, regex) before re-deriving a solution.
-- Asked about past work, prior sessions, or "what did I/we do about X" —
-  even if it happened in a different tool or repo.
+- Asked about past work, prior sessions, or "what did I/we do about X" — even if
+  it happened in a different tool or repo.
 - Resuming work that another agent or machine may have touched.
 
-Typical loop: `search_sessions` → `get_session_overview` →
-`get_messages` anchored at the match ordinal. Results from the last 10
-minutes are excluded by default to avoid retrieving the current
-conversation.
-
-## gstack
-
-Use the `/browse` skill from gstack for all web browsing. Never use
-`mcp__claude-in-chrome__*` tools.
-
-Available gstack skills: `/office-hours`, `/plan-ceo-review`,
-`/plan-eng-review`, `/plan-design-review`, `/design-consultation`,
-`/design-shotgun`, `/design-html`, `/review`, `/ship`, `/land-and-deploy`,
-`/canary`, `/benchmark`, `/browse`, `/connect-chrome`, `/qa`, `/qa-only`,
-`/design-review`, `/setup-browser-cookies`, `/setup-deploy`, `/setup-gbrain`,
-`/retro`, `/investigate`, `/document-release`, `/codex`, `/cso`, `/autoplan`,
-`/plan-devex-review`, `/devex-review`, `/careful`, `/freeze`, `/guard`,
-`/unfreeze`, `/gstack-upgrade`, `/learn`
+Typical loop: `search_sessions` → `get_session_overview` → `get_messages`
+anchored at the match ordinal. Results from the last 10 minutes are excluded by
+default to avoid retrieving the current conversation.
 
 ## Style Preferences
 
