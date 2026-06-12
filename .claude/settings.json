@@ -25,7 +25,18 @@
       "Bash(kata list)",
       "Bash(kata list *)",
       "Bash(pnpm typecheck)",
-      "Bash(pnpm test)"
+      "Bash(pnpm test)",
+      "Bash(gh search *)",
+      "Bash(go doc *)",
+      "Bash(go test *)",
+      "Bash(go vet *)",
+      "Bash(kata search *)",
+      "Bash(kata show *)",
+      "Bash(pnpm lint)",
+      "mcp__agentsview__get_messages",
+      "mcp__agentsview__get_session_overview",
+      "mcp__agentsview__list_sessions",
+      "mcp__codegraph__codegraph_explore"
     ]
   },
   "model": "claude-fable-5[1m]",
