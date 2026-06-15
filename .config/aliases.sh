@@ -14,6 +14,8 @@ alias glow='glow -p'
 alias g='glow -p'
 compdef _glow glow g
 
+alias dco='docker compose'
+
 # Allow sudo to expand aliases that follow it
 alias sudo='sudo '
 
@@ -27,7 +29,7 @@ fi
 # memex — edge-hosted second brain (https://github.com/mjacobs/serverless-memex)
 # Functions live in the project repo; sourced from there if checked out.
 ################################################################################
-[[ -f "$HOME/dev/projects/serverless-memex/scripts/memex.sh" ]] && \
+[[ -f "$HOME/dev/projects/serverless-memex/scripts/memex.sh" ]] &&
   source "$HOME/dev/projects/serverless-memex/scripts/memex.sh"
 
 ################################################################################

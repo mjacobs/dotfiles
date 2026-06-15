@@ -33,3 +33,11 @@ font-size = 9
 font-family = psudoFont Liga Mono
 font-family = Symbols Nerd Font Mono
 shell-integration-features = sudo,ssh-env,ssh-terminfo
+
+# Release ctrl+shift+arrows so they pass through to herdr (the multiplexer),
+# which uses them for pane focus (left/right) and workspace nav (up/down).
+# Ghostty defaults these to previous_tab/next_tab and jump_to_prompt.
+keybind = ctrl+shift+arrow_left=unbind
+keybind = ctrl+shift+arrow_right=unbind
+keybind = ctrl+shift+arrow_up=unbind
+keybind = ctrl+shift+arrow_down=unbind

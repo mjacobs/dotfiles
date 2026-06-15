@@ -1,0 +1,35 @@
+onboarding = false
+
+[ui]
+show_agent_labels_on_pane_borders = true
+
+agent_panel_scope = "all"
+[ui.toast]
+delivery = "herdr"
+
+[ui.sound]
+enabled = false
+
+[theme]
+name = "terminal"
+
+[experimental]
+pane_history = true
+
+[keys]
+# Direct (prefix-less) chords for quick navigation.
+# NOTE: herdr (0.6.10) cannot bind PageUp/PageDown/Home/End, so ctrl+pgup/pgdn
+# is impossible; arrow chords are the workable substitute.
+#
+# REQUIRES Ghostty to release these chords (it binds them by default):
+#   keybind = ctrl+shift+arrow_left=unbind   (etc.)
+# Otherwise Ghostty intercepts them and herdr never sees the key.
+
+# left/right: focus the pane (split) in that direction within the workspace.
+# Arrays keep the default prefix+h/l bindings AND add the direct chords.
+focus_pane_left  = ["prefix+h", "ctrl+shift+left"]
+focus_pane_right = ["prefix+l", "ctrl+shift+right"]
+
+# up/down: move between workspaces.
+previous_workspace = "ctrl+shift+up"
+next_workspace     = "ctrl+shift+down"

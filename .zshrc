@@ -409,9 +409,3 @@ if [[ -z "$_FORGE_THEME_LOADED" ]]; then
   eval "$(forge zsh theme)"
 fi
 # <<< forge initialize <<<
-
-#####################################################################################
-# atuin (disabled; unpleasant UX...)
-#####################################################################################
-# . "$HOME/.atuin/bin/env"
-# eval "$(atuin init zsh)"
