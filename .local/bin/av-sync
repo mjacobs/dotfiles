@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# List of hosts to update (including this local machine by its IP)
+HOSTS=("192.168.5.141" "192.168.5.199" "mj@192.168.7.5" "openclaw@192.168.7.5")
+
+for HOST in "${HOSTS[@]}"; do
+  echo "--------------------------------------------------"
+  echo "Updating Agents View on: $HOST"
+  echo "--------------------------------------------------"
+
+  # Run commands via SSH for all hosts to ensure uniformity
+  ssh "$HOST" "agentsview update && systemctl --user restart agentsview.service"
+
+  if [ $? -eq 0 ]; then
+    echo "Successfully updated and restarted on $HOST"
+  else
+    echo "FAILED to update or restart on $HOST"
+  fi
+done
+
+echo "--------------------------------------------------"
+echo "Sync complete."

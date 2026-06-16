@@ -1,0 +1,69 @@
+#!/bin/bash
+# av-sync-dev: build agentsview from the local working tree and deploy
+# the resulting binary to each remote host. Counterpart to av-sync,
+# which only pulls released versions via `agentsview update`.
+#
+# Use this to test in-development branches (e.g. forge-support) on the
+# aggregated/remote dashboards before cutting a release.
+
+set -euo pipefail
+
+HOSTS=("192.168.5.141" "192.168.5.199" "mj@192.168.7.5" "openclaw@192.168.7.5")
+REPO="${AV_REPO:-$HOME/dev/projects/agentsview}"
+REMOTE_BIN="~/.local/bin/agentsview"
+SERVICE="agentsview.service"
+
+cd "$REPO"
+
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+SHA=$(git rev-parse --short HEAD)
+DIRTY=""
+if ! git diff-index --quiet HEAD --; then
+  DIRTY=" (dirty)"
+fi
+
+echo "--------------------------------------------------"
+echo "Building agentsview from $BRANCH @ $SHA$DIRTY"
+echo "--------------------------------------------------"
+make build-release
+
+LOCAL_BIN="$REPO/agentsview"
+if [[ ! -x "$LOCAL_BIN" ]]; then
+  echo "build did not produce $LOCAL_BIN" >&2
+  exit 1
+fi
+
+BUILT_VERSION=$("$LOCAL_BIN" --version 2>&1 | head -1)
+echo "Built: $BUILT_VERSION"
+
+for HOST in "${HOSTS[@]}"; do
+  echo "--------------------------------------------------"
+  echo "Deploying to: $HOST"
+  echo "--------------------------------------------------"
+
+  # Stage to a temp path, then atomically move into place so a
+  # running agentsview process is never partially overwritten.
+  if ! rsync -e ssh --partial --inplace --progress \
+    "$LOCAL_BIN" "$HOST:$REMOTE_BIN.new"; then
+    echo "FAILED to copy binary to $HOST" >&2
+    continue
+  fi
+
+  if ! ssh "$HOST" "
+        set -e
+        chmod +x $REMOTE_BIN.new
+        mv $REMOTE_BIN.new $REMOTE_BIN
+        systemctl --user restart $SERVICE
+        sleep 1
+        $REMOTE_BIN --version | head -1
+    "; then
+    echo "FAILED to install or restart on $HOST" >&2
+    continue
+  fi
+
+  echo "OK: $HOST updated"
+done
+
+echo "--------------------------------------------------"
+echo "Dev sync complete."
+echo "Run 'av-sync' to revert hosts to the latest release."

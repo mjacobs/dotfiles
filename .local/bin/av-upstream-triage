@@ -1,0 +1,165 @@
+#!/usr/bin/env bash
+# av-upstream-triage — scan a GitHub repo's issues/PRs for what needs attention.
+# Defaults to the agentsview upstream. Two complementary views:
+#
+#   mine     (default) issues/PRs you are ALREADY involved in — is the ball in
+#            your court? ("<- name" = last human comment wasn't yours).
+#   new      (-n)      opportunities you are NOT yet involved in: open issues
+#            to pick up / own / implement, and open PRs that want a review.
+#   all      (-a)      both views, mine first.
+#
+# Usage:
+#   av-upstream-triage [-r owner/repo] [-u login] [-d days] [-n|-a] [-q]
+#
+#   -r  repo to scan            (default: kenn-io/agentsview)
+#   -u  GitHub login to triage  (default: authenticated gh user)
+#   -d  recently-closed window  (default: 14 days; mine view only)
+#   -n  discovery view only     (things NOT involving you)
+#   -a  both views (mine + discovery)
+#   -q  quick: skip per-item last-commenter enrichment (mine view, fewer API calls)
+#   -h  this help
+#
+# Discovery signals:
+#   PICK UP  — open issues with no assignee and not involving you. Bot authors
+#              (renovate/dependabot) are dropped. Rows labeled help-wanted or
+#              good-first-issue float to the top and are flagged "*".
+#   REVIEW   — open, non-draft PRs not authored by you, with no reviews yet and
+#              not already reviewed by you. Oldest-waiting first.
+
+set -uo pipefail
+
+REPO="kenn-io/agentsview"
+USER_LOGIN=""
+DAYS=14
+QUICK=0
+MODE="mine" # mine | discover | all
+
+usage() { sed -n '2,33p' "$0" | sed 's/^# \{0,1\}//'; }
+
+while getopts "r:u:d:naqh" opt; do
+	case "$opt" in
+	r) REPO="$OPTARG" ;;
+	u) USER_LOGIN="$OPTARG" ;;
+	d) DAYS="$OPTARG" ;;
+	n) MODE="discover" ;;
+	a) MODE="all" ;;
+	q) QUICK=1 ;;
+	h)
+		usage
+		exit 0
+		;;
+	*) exit 2 ;;
+	esac
+done
+
+command -v gh >/dev/null || {
+	echo "gh CLI not found" >&2
+	exit 1
+}
+
+[[ -n "$USER_LOGIN" ]] || USER_LOGIN="$(gh api user --jq .login)"
+SINCE="$(date -d "$DAYS days ago" +%Y-%m-%d)"
+
+### Helpers ###################################################################
+
+# Last human (non-bot) conversation commenter on an issue/PR, "" if none.
+last_human_commenter() {
+	gh api "repos/$REPO/issues/$1/comments" \
+		--jq '[.[] | select(.user.type != "Bot") | .user.login] | last // ""' \
+		2>/dev/null || echo ""
+}
+
+# Render the OPEN set involving you as: #num KIND date author title [<- name]
+render_open() {
+	gh search issues --repo "$REPO" --involves "$USER_LOGIN" \
+		--state open --include-prs --limit 60 \
+		--json number,title,author,updatedAt,isPullRequest \
+		--jq 'sort_by(.updatedAt) | reverse | .[]
+			| [(.number|tostring),
+			   (if .isPullRequest then "PR" else "issue" end),
+			   (.updatedAt[:10]),
+			   .author.login,
+			   (.title[:55])] | @tsv' |
+		while IFS=$'\t' read -r num kind updated author title; do
+			marker=""
+			if [[ $QUICK -eq 0 ]]; then
+				lc="$(last_human_commenter "$num")"
+				[[ -n "$lc" && "$lc" != "$USER_LOGIN" ]] && marker="<- $lc"
+			fi
+			printf '#%s\t%s\t%s\t%s\t%s\t%s\n' \
+				"$num" "$kind" "$updated" "$author" "$title" "$marker"
+		done
+}
+
+### Reports ###################################################################
+
+report_mine() {
+	printf '\n=== OPEN — issues & PRs involving %s  (repo: %s) ===\n' \
+		"$USER_LOGIN" "$REPO"
+	printf '("<- name" = last human comment not yours; likely your move)\n\n'
+	render_open | column -t -s $'\t'
+
+	printf '\n=== REVIEW REQUESTED of %s (open) ===\n\n' "$USER_LOGIN"
+	gh search prs --repo "$REPO" --review-requested "$USER_LOGIN" \
+		--state open --limit 40 \
+		--json number,title,author,updatedAt \
+		--jq 'sort_by(.updatedAt) | reverse | .[]
+			| ["#"+(.number|tostring), .updatedAt[:10], .author.login, .title[:60]]
+			| @tsv' | column -t -s $'\t'
+
+	printf '\n=== RECENTLY CLOSED (last %s d) involving %s — FYI ===\n\n' \
+		"$DAYS" "$USER_LOGIN"
+	gh search issues --repo "$REPO" --involves "$USER_LOGIN" \
+		--state closed --include-prs --updated ">$SINCE" --limit 60 \
+		--json number,title,author,updatedAt,isPullRequest \
+		--jq 'sort_by(.updatedAt) | reverse | .[]
+			| ["#"+(.number|tostring),
+			   (if .isPullRequest then "PR" else "issue" end),
+			   .updatedAt[:10], .author.login, .title[:55]] | @tsv' |
+		column -t -s $'\t'
+}
+
+report_discover() {
+	printf '\n=== PICK UP — open issues, unassigned, not involving %s  (repo: %s) ===\n' \
+		"$USER_LOGIN" "$REPO"
+	printf '(cols: #  created  comments  labels  title  [*=help-wanted/good-first])\n\n'
+	gh search issues --repo "$REPO" --state open --no-assignee --limit 80 \
+		--json number,title,author,labels,commentsCount,createdAt,updatedAt \
+		--jq '
+			def pri: ([.labels[].name | ascii_downcase] | any(test("help.?wanted|good.?first")));
+			[ .[] | select((.author.login // "") | test("\\[bot\\]|^renovate$|^dependabot$";"i") | not) ] as $items
+			| (($items | sort_by(.updatedAt)) | reverse) as $s
+			| ([ $s[] | select(pri) ] + [ $s[] | select(pri|not) ])
+			| .[]
+			| [ ("#"+(.number|tostring)),
+			    (.createdAt[:10]),
+			    (.commentsCount|tostring),
+			    (([.labels[].name]|join(","))[:24] | if .=="" then "-" else . end),
+			    (.title[:50]),
+			    (if pri then "*" else "" end) ] | @tsv' \
+		-- "-involves:$USER_LOGIN" | column -t -s $'\t'
+
+	printf '\n=== REVIEW — open PRs needing review, not involving %s (oldest first) ===\n' \
+		"$USER_LOGIN"
+	printf '(non-draft, no reviews yet; cols: #  created  author  comments  title)\n\n'
+	gh search prs --repo "$REPO" --state open --review none --draft=false --limit 50 \
+		--json number,title,author,commentsCount,createdAt \
+		--jq 'sort_by(.createdAt) | .[]
+			| [ ("#"+(.number|tostring)),
+			    (.createdAt[:10]),
+			    .author.login,
+			    (.commentsCount|tostring),
+			    (.title[:55]) ] | @tsv' \
+		-- "-involves:$USER_LOGIN" "-reviewed-by:$USER_LOGIN" | column -t -s $'\t'
+}
+
+case "$MODE" in
+mine) report_mine ;;
+discover) report_discover ;;
+all)
+	report_mine
+	report_discover
+	;;
+esac
+
+printf '\n'
