@@ -88,6 +88,33 @@ Homebrew (Linuxbrew) lives at `/home/linuxbrew/.linuxbrew`.
 - GPG is used for commit signing only; SSH auth uses ssh-agent
 - Wrap commit message body text at 80 columns
 
+## Continuous Code Review (roborev)
+
+[roborev](https://roborev.io) runs a local background code review on every commit
+in repos where its hook is armed (currently `~/dev/projects/agentsview`; arm
+others with `roborev install-hook`). The reviewer is Codex/GPT — an independent
+second opinion from the Claude coder — fanned out to a correctness pass plus a
+security pass whose config mirrors the GitHub CI panel. Scope caveat (learned the
+hard way): the **commit hook reviews only that commit's diff**, whereas the CI
+bot reviews the **whole-PR diff vs base** — so clearing per-commit findings does
+NOT by itself pre-empt CI for issues sitting in earlier branch commits.
+
+- **Commit in small, focused steps, not one big commit.** Small diffs get
+  reviewed incrementally and catch issues a large-PR review misses. (The
+  agentsview `AGENTS.md` already mandates committing every turn.)
+- **Before pushing or replying on a PR, run a whole-branch review to match CI's
+  scope** rather than trusting the per-commit hook alone: `roborev review
+  --branch --base <base> --panel <panel>` (e.g. `--base upstream/main --panel
+  default_security`). Confirm clean before posting outward — read the synthesis
+  verdict AND its member reviews (the synthesis job is just a fast combine, often
+  ~0s; the real findings live in the member jobs).
+- An installed agent-hook (`PreToolUse`/`PostToolUse`/`Stop`) may inject a nudge
+  to address review findings that piled up in the background. When it does,
+  **pause and clear them before continuing** — `roborev list` / `roborev show
+  <sha>` to read, or the `$roborev-fix` skill to patch — rather than ignoring it.
+- Treat findings as a real review. Reviews run on the Codex/ChatGPT subscription
+  (quota, not metered API), so roborev's dollar figures are estimates.
+
 ## Tool Preferences
 
 - Editor: Neovim (LazyVim). When suggesting tooling, prefer modern
