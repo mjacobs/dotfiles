@@ -138,6 +138,24 @@ Typical loop: `search_sessions` → `get_session_overview` → `get_messages`
 anchored at the match ordinal. Results from the last 10 minutes are excluded by
 default to avoid retrieving the current conversation.
 
+## Web Access (Agent Tools)
+
+Two self-hosted services back all web access — prefer their MCP tools over the
+built-in `WebFetch`/`WebSearch`. They're local, unmetered, and render JS, and
+keep traffic on the homelab instead of the public internet.
+
+- **Search** → `firecrawl_search` or `searxng_web_search` (both query SearXNG at
+  `192.168.5.240:8888`). The Firecrawl MCP already nudges search this way by
+  default.
+- **Read one URL → markdown** → `firecrawl_scrape` (renders JS via
+  playwright-service) or SearXNG `web_url_read` — NOT built-in `WebFetch`.
+- **Map / crawl / extract a site** → `firecrawl_map` / `firecrawl_crawl` /
+  `firecrawl_extract` (Firecrawl at `firecrawl.pine.m4tt.xyz:3002`).
+- Shell fallback for quick searches: `sxng "query"` (SearXNG JSON CLI).
+
+Fall back to built-in `WebFetch`/`WebSearch` only when the homelab MCP servers
+are unreachable.
+
 ## Style Preferences
 
 ### Shell Scripts

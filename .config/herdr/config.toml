@@ -33,3 +33,14 @@ focus_pane_right = ["prefix+l", "ctrl+shift+right"]
 # up/down: move between workspaces.
 previous_workspace = "ctrl+shift+up"
 next_workspace     = "ctrl+shift+down"
+
+# Focus the next agent terminal that is waiting for input (status "blocked").
+# Press repeatedly to cycle through every waiting agent; toasts if none wait.
+# Uses a prefix chord so it never steals a keystroke from the focused agent.
+# Want a single-press chord instead? Swap to e.g. key = "ctrl+shift+a" and add
+#   keybind = ctrl+shift+a=unbind
+# to your Ghostty config so the terminal releases it (same as the arrows above).
+[[keys.command]]
+key = "prefix+a"
+type = "shell"
+command = "/home/mj/.local/bin/herdr-focus-next-waiting"
