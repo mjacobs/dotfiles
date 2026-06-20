@@ -1,0 +1,46 @@
+#!/usr/bin/env python3
+"""sxng — query the homelab SearXNG via its JSON API and print clean results.
+
+Usage:
+  sxng <query...>          pretty output (results + answers/infoboxes/suggestions)
+  sxng --json <query...>   raw JSON (for piping into jq, etc.)
+
+Endpoint override: set SEARXNG_URL (default: http://192.168.5.240:8888).
+JSON format is enabled server-side (settings.yml: search.formats includes json).
+"""
+import os, sys, json, urllib.parse, urllib.request
+
+BASE = os.environ.get("SEARXNG_URL", "http://192.168.5.240:8888").rstrip("/") + "/search"
+
+def search(query, **params):
+    q = {"q": query, "format": "json", **params}
+    url = BASE + "?" + urllib.parse.urlencode(q)
+    req = urllib.request.Request(url, headers={"Accept": "application/json"})
+    return json.load(urllib.request.urlopen(req, timeout=25))
+
+def main():
+    args = [a for a in sys.argv[1:] if a != "--json"]
+    if not args:
+        print(__doc__.strip()); sys.exit(2)
+    d = search(" ".join(args))
+    if "--json" in sys.argv:
+        print(json.dumps(d, indent=2, ensure_ascii=False)); return
+    print(f"\n# {d['query']}  ({len(d['results'])} results)")
+    for a in d.get("answers", []):
+        print(f"  ★ {a.get('answer') if isinstance(a, dict) else a}")
+    for ib in d.get("infoboxes", []):
+        print(f"  ⓘ {ib.get('infobox')}: {(ib.get('content') or '')[:160]}")
+    for i, r in enumerate(d["results"][:8], 1):
+        print(f"\n{i}. {r['title']}")
+        print(f"   {r['url']}")
+        if r.get("content"):
+            print(f"   {r['content'][:200]}")
+        meta = []
+        if r.get("engines"): meta.append("+".join(r["engines"]))
+        if r.get("publishedDate"): meta.append(r["publishedDate"][:10])
+        if meta: print(f"   [{' | '.join(meta)}]")
+    if d.get("suggestions"):
+        print(f"\n  ↳ suggestions: {', '.join(d['suggestions'][:6])}")
+
+if __name__ == "__main__":
+    main()
