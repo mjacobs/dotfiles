@@ -96,6 +96,12 @@
         {
           "type": "text",
           "style": "plain",
+          "foreground": "p:subtext0",
+          "template": "{{ if .Env.CLAUDE_LIMITS }}{{ .Env.CLAUDE_LIMITS }}  {{ end }}"
+        },
+        {
+          "type": "text",
+          "style": "plain",
           "foreground": "p:accent",
           "template": "{{ if .Env.AI_USAGE }}{{ .Env.AI_USAGE }}  {{ end }}"
         },

@@ -34,6 +34,20 @@ IFS=$'\x1f' read -r cwd model used_pct repo_owner repo_name effort thinking \
   vim_mode r5_pct r5_reset r7_pct r7_reset cost lines_add lines_del worktree \
   <<<"$parse"
 
+# --- Bridge to the shell prompt (oh-my-posh) -------------------------------
+# The shell prompt can't see this stdin JSON, so publish the 5h/7d rate-limit
+# windows to a cache file a prompt segment can read (see
+# ~/.config/oh-my-posh/claude-limits.zsh). Values + reset epochs only; no
+# secrets. Best-effort; never affects footer rendering.
+if [[ -n "$r5_pct" || -n "$r7_pct" ]]; then
+  _omp_dir="${XDG_CACHE_HOME:-$HOME/.cache}/omp"
+  mkdir -p "$_omp_dir" 2>/dev/null &&
+    printf 'ts=%s r5_pct=%s r5_reset=%s r7_pct=%s r7_reset=%s\n' \
+      "$(date +%s)" "$r5_pct" "$r5_reset" "$r7_pct" "$r7_reset" \
+      >"$_omp_dir/claude-limits" 2>/dev/null
+  unset _omp_dir
+fi
+
 # ---------------------------------------------------------------------------
 # Glyphs (Nerd Font + Unicode) as UTF-8 byte literals — bash 3.2 safe
 # ---------------------------------------------------------------------------

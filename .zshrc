@@ -361,6 +361,8 @@ fi
 
 # AI-usage prompt segment — optional; self-disables when its data source is absent.
 [[ -r "$HOME/.config/oh-my-posh/ai-usage.zsh" ]] && source "$HOME/.config/oh-my-posh/ai-usage.zsh"
+# Claude Code 5h/weekly usage — optional; hidden until a Claude Code session populates the snapshot.
+[[ -r "$HOME/.config/oh-my-posh/claude-limits.zsh" ]] && source "$HOME/.config/oh-my-posh/claude-limits.zsh"
 
 # GitHub CLI - load auth token into GH_TOKEN
 if command -v gh >/dev/null 2>&1; then

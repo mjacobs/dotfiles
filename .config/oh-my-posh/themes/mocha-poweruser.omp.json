@@ -116,6 +116,14 @@
           "type": "text",
           "style": "diamond",
           "leading_diamond": "",
+          "background": "p:sky",
+          "foreground": "p:crust",
+          "template": "{{ if .Env.CLAUDE_LIMITS }} {{ .Env.CLAUDE_LIMITS }} {{ end }}"
+        },
+        {
+          "type": "text",
+          "style": "diamond",
+          "leading_diamond": "",
           "background": "p:mauve",
           "foreground": "p:crust",
           "template": "{{ if .Env.AI_USAGE }} {{ .Env.AI_USAGE }} {{ end }}"
