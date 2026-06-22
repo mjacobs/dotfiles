@@ -338,17 +338,29 @@ fi
 
 ################################################################################
 # prompt (oh-my-posh)
-# OMP_THEME_DIR comes from the OS-specific rc sidecar; change the filename
-# below to switch themes on all machines at once.
+# Theme resolution is portable across machines (first match wins):
+#   1. ~/.config/oh-my-posh/themes   custom themes, yadm-tracked (same path on every OS)
+#   2. $OMP_THEME_DIR                 omp-manager's stock set (per-OS, set in the rc sidecar)
+#   3. oh-my-posh's built-in default
+# Pick a different theme per-machine by setting OMP_THEME_NAME in ~/.zshrc.local.
+# Degrades to a plain prompt when oh-my-posh isn't installed.
 ################################################################################
-OMP_THEME_NAME="froczh.omp.json"
+: "${OMP_THEME_NAME:=mocha-evolution.omp.json}"
 if command -v oh-my-posh >/dev/null 2>&1; then
-  if [[ -n "$OMP_THEME_DIR" && -f "$OMP_THEME_DIR/$OMP_THEME_NAME" ]]; then
-    eval "$(oh-my-posh init zsh --config "$OMP_THEME_DIR/$OMP_THEME_NAME")"
+  _omp_config=""
+  for _omp_dir in "$HOME/.config/oh-my-posh/themes" "$OMP_THEME_DIR"; do
+    [[ -n "$_omp_dir" && -f "$_omp_dir/$OMP_THEME_NAME" ]] && { _omp_config="$_omp_dir/$OMP_THEME_NAME"; break; }
+  done
+  if [[ -n "$_omp_config" ]]; then
+    eval "$(oh-my-posh init zsh --config "$_omp_config")"
   else
     eval "$(oh-my-posh init zsh)"
   fi
+  unset _omp_config _omp_dir
 fi
+
+# AI-usage prompt segment — optional; self-disables when its data source is absent.
+[[ -r "$HOME/.config/oh-my-posh/ai-usage.zsh" ]] && source "$HOME/.config/oh-my-posh/ai-usage.zsh"
 
 # GitHub CLI - load auth token into GH_TOKEN
 if command -v gh >/dev/null 2>&1; then

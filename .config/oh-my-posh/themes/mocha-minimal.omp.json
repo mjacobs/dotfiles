@@ -1,0 +1,130 @@
+{
+  "$schema": "https://raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/main/themes/schema.json",
+  "version": 4,
+  "final_space": true,
+  "palette": {
+    "accent": "#cba6f7",
+    "subtext0": "#a6adc8",
+    "overlay0": "#6c7086",
+    "green": "#a6e3a1",
+    "peach": "#fab387",
+    "yellow": "#f9e2af",
+    "blue": "#89b4fa",
+    "red": "#f38ba8"
+  },
+  "blocks": [
+    {
+      "type": "prompt",
+      "alignment": "left",
+      "segments": [
+        {
+          "type": "path",
+          "style": "plain",
+          "foreground": "p:accent",
+          "options": {
+            "style": "agnoster_short",
+            "max_depth": 2,
+            "home_icon": "~",
+            "folder_icon": "…",
+            "folder_separator_icon": "<p:overlay0>  </>"
+          },
+          "template": "{{ .Path }} "
+        },
+        {
+          "type": "git",
+          "style": "plain",
+          "foreground": "p:subtext0",
+          "options": {
+            "fetch_status": true,
+            "branch_icon": " ",
+            "commit_icon": " ",
+            "tag_icon": " ",
+            "rebase_icon": " ",
+            "cherry_pick_icon": " ",
+            "revert_icon": " ",
+            "merge_icon": " ",
+            "no_commits_icon": " "
+          },
+          "template": "{{ .HEAD }}{{ if or .Working.Changed .Staging.Changed }}<p:peach> •</>{{ end }}{{ if gt .Ahead 0 }}<p:blue> ↑{{ .Ahead }}</>{{ end }}{{ if gt .Behind 0 }}<p:red> ↓{{ .Behind }}</>{{ end }}{{ if gt .StashCount 0 }}<p:overlay0> {{ .StashCount }}</>{{ end }} "
+        },
+        {
+          "type": "go",
+          "style": "plain",
+          "foreground": "p:green",
+          "options": {
+            "fetch_version": true,
+            "display_mode": "files"
+          },
+          "template": " {{ .Full }} "
+        },
+        {
+          "type": "node",
+          "style": "plain",
+          "foreground": "p:green",
+          "options": {
+            "fetch_version": true,
+            "display_mode": "files"
+          },
+          "template": " {{ .Full }} "
+        },
+        {
+          "type": "python",
+          "style": "plain",
+          "foreground": "p:yellow",
+          "options": {
+            "fetch_version": true,
+            "display_mode": "files"
+          },
+          "template": " {{ if .Venv }}{{ .Venv }} {{ end }}{{ .Full }} "
+        },
+        {
+          "type": "rust",
+          "style": "plain",
+          "foreground": "p:peach",
+          "options": {
+            "fetch_version": true,
+            "display_mode": "files"
+          },
+          "template": " {{ .Full }} "
+        }
+      ]
+    },
+    {
+      "type": "prompt",
+      "alignment": "right",
+      "segments": [
+        {
+          "type": "text",
+          "style": "plain",
+          "foreground": "p:accent",
+          "template": "{{ if .Env.AI_USAGE }}{{ .Env.AI_USAGE }}  {{ end }}"
+        },
+        {
+          "type": "time",
+          "style": "plain",
+          "foreground": "p:overlay0",
+          "options": {
+            "time_format": "15:04"
+          },
+          "template": "{{ .CurrentDate | date .Format }}"
+        }
+      ]
+    },
+    {
+      "type": "prompt",
+      "alignment": "left",
+      "newline": true,
+      "segments": [
+        {
+          "type": "text",
+          "style": "plain",
+          "foreground": "p:accent",
+          "foreground_templates": [
+            "{{ if gt .Code 0 }}p:red{{ end }}"
+          ],
+          "template": "❯ "
+        }
+      ]
+    }
+  ]
+}
