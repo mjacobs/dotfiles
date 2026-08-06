@@ -5,11 +5,31 @@
 #
 # Use this to test in-development branches (e.g. forge-support) on the
 # aggregated/remote dashboards before cutting a release.
+#
+# Usage: av-sync-dev [repo-dir]
+#   repo-dir: checkout/worktree to build from (default: $AV_REPO,
+#   then ~/dev/projects/agentsview)
 
 set -euo pipefail
 
-HOSTS=("192.168.5.141" "192.168.5.199" "mj@192.168.7.5" "openclaw@192.168.7.5")
-REPO="${AV_REPO:-$HOME/dev/projects/agentsview}"
+HOSTS_FILE="${AV_SYNC_HOSTS_FILE:-$HOME/.config/agentsview/sync-hosts}"
+HOSTS=()
+if [[ ! -r "$HOSTS_FILE" ]]; then
+  echo "missing host list: $HOSTS_FILE" >&2
+  exit 1
+fi
+while IFS= read -r host; do
+  [[ -z "$host" || "$host" == \#* ]] && continue
+  HOSTS+=("$host")
+done <"$HOSTS_FILE"
+
+REPO="${1:-${AV_REPO:-$HOME/dev/projects/agentsview}}"
+
+# Worktrees have a .git file rather than a directory, so probe via git.
+if ! git -C "$REPO" rev-parse --git-dir >/dev/null 2>&1; then
+  echo "not a git checkout: $REPO" >&2
+  exit 1
+fi
 REMOTE_BIN="~/.local/bin/agentsview"
 SERVICE="agentsview.service"
 

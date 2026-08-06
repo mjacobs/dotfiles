@@ -1,0 +1,156 @@
+#!/usr/bin/env bash
+###############################################################################
+# git-publish-mirror — publish a private repo's CURRENT tree to a public mirror
+# as one squashed commit, grafted onto the public branch, carrying no private
+# history. (See the yas publish playbook for the model.)
+#
+#   private main (full history)  ──tree──▶  new commit D
+#   public branch (curated)      ──parent─▶  D  ─push─▶ public remote
+#
+# Lives in ~/.local/bin. Site-specific patterns stay in the encrypted private
+# terms file so this script itself is safe to publish.
+###############################################################################
+set -euo pipefail
+
+### Config — safe to edit; this file is private ##############################
+SRC_BRANCH="main"     # branch whose tree you publish (the private lineage)
+PUB_BRANCH="public"   # local branch tracking the public mirror
+PUB_REMOTE="github"   # git remote of the public mirror
+PUB_REF="main"        # branch on the public remote to push to
+
+# Patterns that must never reach a public diff. Two families joined by '|':
+#   1. Private infra identifiers (IPs, homelab hosts, internal tooling, home paths).
+#   2. Secret *values* — a credential keyword followed within a few chars by a
+#      long opaque string. Value-shaped on purpose: it catches `token = "a1b2…"`
+#      but NOT the word "token" in code/comments (json.Decoder.Token, executor
+#      token, etc.), which a bare \btoken\b would drown you in.
+# Add private infrastructure patterns to ~/.config/kenn/private-terms.txt, one
+# extended regular expression per line. Blank lines and comments are ignored.
+DENYLIST='192\.168\.|10\.[0-9]+\.[0-9]+\.|100\.64\.|:3000|gitea|\bkata\b|roborev|\bbeads\b|\byadm\b|agentsview|/home/[a-z][a-z0-9_-]*|BEGIN [A-Z ]*PRIVATE KEY|(password|passwd|secret|api[_-]?key|access[_-]?key|token|bearer|credential).{0,6}[A-Za-z0-9._+/-]{20,}'
+PRIVATE_TERMS_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/kenn/private-terms.txt"
+if [[ -r "$PRIVATE_TERMS_FILE" ]]; then
+  while IFS= read -r pattern; do
+    [[ -z "$pattern" || "$pattern" == \#* ]] && continue
+    DENYLIST+="|${pattern}"
+  done < "$PRIVATE_TERMS_FILE"
+fi
+
+### Defaults / flags #########################################################
+MSG=""
+ASSUME_YES=0
+DRY_RUN=0
+ALLOW_UNSAFE=0
+SIGN_FLAG=(-S)        # GPG-sign the public commit; cleared by --no-sign
+
+c_red=$'\e[31m'; c_grn=$'\e[32m'; c_ylw=$'\e[33m'; c_dim=$'\e[2m'; c_off=$'\e[0m'
+[[ -t 1 ]] || { c_red=; c_grn=; c_ylw=; c_dim=; c_off=; }
+die()  { printf '%serror:%s %s\n' "$c_red" "$c_off" "$*" >&2; exit 1; }
+info() { printf '%s\n' "$*" >&2; }
+
+usage() {
+  cat >&2 <<EOF
+git-publish-mirror — graft the private tree onto the public mirror and push.
+
+usage: git-publish-mirror [-m MSG] [options]
+  -m, --message MSG   release message (prompted if omitted)
+  -n, --dry-run       show the delta + scan, but don't graft or push
+  -y, --yes           skip the confirmation prompt
+      --src BRANCH     private source branch          (default: $SRC_BRANCH)
+      --public BRANCH  local public branch            (default: $PUB_BRANCH)
+      --remote NAME    public remote                  (default: $PUB_REMOTE)
+      --ref BRANCH     branch on the public remote     (default: $PUB_REF)
+      --no-sign        do not GPG-sign the public commit
+      --allow-unsafe   publish even if the safety scan finds matches
+  -h, --help          this help
+EOF
+  exit "${1:-0}"
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -m|--message)   MSG="${2:?message required}"; shift 2 ;;
+    -n|--dry-run)   DRY_RUN=1; shift ;;
+    -y|--yes)       ASSUME_YES=1; shift ;;
+    --src)          SRC_BRANCH="${2:?}"; shift 2 ;;
+    --public)       PUB_BRANCH="${2:?}"; shift 2 ;;
+    --remote)       PUB_REMOTE="${2:?}"; shift 2 ;;
+    --ref)          PUB_REF="${2:?}"; shift 2 ;;
+    --no-sign)      SIGN_FLAG=(); shift ;;
+    --allow-unsafe) ALLOW_UNSAFE=1; shift ;;
+    -h|--help)      usage 0 ;;
+    *)              die "unknown argument: $1  (see --help)" ;;
+  esac
+done
+
+### Preconditions ############################################################
+git rev-parse --git-dir >/dev/null 2>&1 || die "not inside a git repository"
+git show-ref --verify --quiet "refs/heads/$SRC_BRANCH" || die "no source branch '$SRC_BRANCH'"
+git show-ref --verify --quiet "refs/heads/$PUB_BRANCH" || die "no public branch '$PUB_BRANCH'"
+git remote get-url "$PUB_REMOTE" >/dev/null 2>&1 || die "no remote '$PUB_REMOTE'"
+
+repo="$(basename "$(git rev-parse --show-toplevel)")"
+
+### Nothing to do if the trees already match #################################
+if git diff --quiet "$PUB_BRANCH" "$SRC_BRANCH"; then
+  info "${c_grn}nothing to publish${c_off} — ${PUB_BRANCH} tree already equals ${SRC_BRANCH}."
+  exit 0
+fi
+
+### Show the delta ###########################################################
+info ""
+info "${c_dim}# ${repo}: what would change in the public tree (${PUB_BRANCH} → ${SRC_BRANCH})${c_off}"
+git --no-pager diff --stat "$PUB_BRANCH" "$SRC_BRANCH" >&2
+
+### Safety scan ##############################################################
+hits="$(git diff "$PUB_BRANCH" "$SRC_BRANCH" | grep -nE '^\+' | grep -Ei "$DENYLIST" || true)"
+if [[ -n "$hits" ]]; then
+  info ""
+  info "${c_red}✗ safety scan matched the denylist:${c_off}"
+  printf '%s\n' "$hits" | sed 's/^/    /' >&2
+  if [[ "$ALLOW_UNSAFE" -eq 0 ]]; then
+    die "refusing to publish. Fix the delta, or pass --allow-unsafe to override."
+  fi
+  info "${c_ylw}--allow-unsafe set; continuing despite matches.${c_off}"
+else
+  info "${c_grn}✓ safety scan clean${c_off}"
+fi
+
+### Plan ####################################################################
+info ""
+info "  ${c_dim}graft :${c_off} ${SRC_BRANCH}^{tree}  onto  ${PUB_BRANCH}"
+info "  ${c_dim}push  :${c_off} ${PUB_BRANCH}  ->  ${PUB_REMOTE}/${PUB_REF}"
+if [[ "$DRY_RUN" -eq 1 ]]; then
+  info ""
+  info "${c_ylw}dry run — nothing grafted or pushed.${c_off}"
+  exit 0
+fi
+
+### Release message (only a real publish needs one) ##########################
+if [[ -z "$MSG" ]]; then
+  [[ -t 0 ]] || die "no --message and no tty to prompt on"
+  printf 'Release message: ' >&2
+  IFS= read -r MSG
+fi
+[[ -n "${MSG//[[:space:]]/}" ]] || die "empty release message"
+info "  ${c_dim}msg   :${c_off} ${MSG}"
+
+### Confirm #################################################################
+if [[ "$ASSUME_YES" -eq 0 ]]; then
+  [[ -t 0 ]] || die "not a tty; pass --yes to publish non-interactively"
+  printf 'Publish to %s/%s? [y/N] ' "$PUB_REMOTE" "$PUB_REF" >&2
+  read -r reply
+  [[ "$reply" == [yY] || "$reply" == [yY][eE][sS] ]] || die "aborted."
+fi
+
+### Graft, verify, push ######################################################
+new="$(git commit-tree "${SIGN_FLAG[@]}" "${SRC_BRANCH}^{tree}" -p "$PUB_BRANCH" -m "$MSG")"
+git branch -f "$PUB_BRANCH" "$new"
+
+git diff --quiet "$PUB_BRANCH" "$SRC_BRANCH" \
+  || die "graft mismatch: ${PUB_BRANCH} tree != ${SRC_BRANCH} (aborted before push)"
+
+git push "$PUB_REMOTE" "${PUB_BRANCH}:${PUB_REF}"
+
+info ""
+info "${c_grn}✓ published${c_off} ${repo}  ${new:0:9}  ->  ${PUB_REMOTE}/${PUB_REF}"
+git --no-pager log --oneline -3 "$PUB_BRANCH" >&2

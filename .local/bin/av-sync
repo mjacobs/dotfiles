@@ -1,7 +1,15 @@
 #!/bin/bash
 
-# List of hosts to update (including this local machine by its IP)
-HOSTS=("192.168.5.141" "192.168.5.199" "mj@192.168.7.5" "openclaw@192.168.7.5")
+HOSTS_FILE="${AV_SYNC_HOSTS_FILE:-$HOME/.config/agentsview/sync-hosts}"
+HOSTS=()
+if [[ ! -r "$HOSTS_FILE" ]]; then
+  echo "missing host list: $HOSTS_FILE" >&2
+  exit 1
+fi
+while IFS= read -r host; do
+  [[ -z "$host" || "$host" == \#* ]] && continue
+  HOSTS+=("$host")
+done <"$HOSTS_FILE"
 
 for HOST in "${HOSTS[@]}"; do
   echo "--------------------------------------------------"
@@ -9,9 +17,7 @@ for HOST in "${HOSTS[@]}"; do
   echo "--------------------------------------------------"
 
   # Run commands via SSH for all hosts to ensure uniformity
-  ssh "$HOST" "agentsview update && systemctl --user restart agentsview.service"
-
-  if [ $? -eq 0 ]; then
+  if ssh "$HOST" "agentsview update --yes && systemctl --user restart agentsview.service"; then
     echo "Successfully updated and restarted on $HOST"
   else
     echo "FAILED to update or restart on $HOST"

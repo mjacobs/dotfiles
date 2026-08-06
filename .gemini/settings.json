@@ -1,0 +1,87 @@
+{
+  "experimental": {
+    "contextManagement": true,
+    "generalistProfile": true,
+    "topicUpdateNarration": true,
+    "useOSC52Copy": true,
+    "useOSC52Paste": true
+  },
+  "general": {
+    "defaultApprovalMode": "auto_edit",
+    "enableNotifications": true,
+    "sessionRetention": {
+      "maxAge": "90d"
+    }
+  },
+  "hooks": {
+    "PreCompress": [
+      {
+        "hooks": [
+          {
+            "command": "bd prime",
+            "type": "command"
+          }
+        ],
+        "matcher": ""
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "command": "bd prime",
+            "type": "command"
+          }
+        ],
+        "matcher": ""
+      }
+    ]
+  },
+  "mcpServers": {
+    "codegraph": {
+      "args": [
+        "serve",
+        "--mcp"
+      ],
+      "command": "codegraph",
+      "type": "stdio"
+    }
+  },
+  "model": {
+    "name": "gemini-3.1-pro-preview"
+  },
+  "security": {
+    "auth": {
+      "selectedType": "gemini-api-key"
+    },
+    "enablePermanentToolApproval": true
+  },
+  "ui": {
+    "errorVerbosity": "full",
+    "footer": {
+      "hideContextPercentage": false,
+      "items": [
+        "workspace",
+        "git-branch",
+        "sandbox",
+        "model-name",
+        "context-used",
+        "quota",
+        "memory-usage",
+        "session-id",
+        "auth",
+        "code-changes",
+        "token-count"
+      ]
+    },
+    "inlineThinkingMode": "full",
+    "showCitations": true,
+    "showHomeDirectoryWarning": false,
+    "showLineNumbers": true,
+    "showMemoryUsage": true,
+    "showModelInfoInChat": true,
+    "showStatusInTitle": true,
+    "showUserIdentity": true,
+    "theme": "Atom One"
+  }
+}

@@ -5,15 +5,38 @@ from __future__ import annotations
 
 import json
 import os
+import shlex
 import subprocess
 import sys
 import urllib.error
 import urllib.request
 
-
 SKIP_SOURCES = {"message", "commit", "merge", "squash"}
-DEFAULT_MODEL = "gpt-5.4-nano"
+DEFAULT_MODEL = "gpt-5.6-luna"
 DEFAULT_BASE_URL = "https://api.openai.com/v1"
+SECRET_ENV_NAMES = {
+    "COMMIT_MSG_LLM_API_KEY",
+    "CLI_PROXY_API_KEY",
+    "OPENAI_API_KEY",
+    "LLM_API_KEY",
+    "COMMIT_MSG_LLM_BASE_URL",
+    "CLI_PROXY_API_ENDPOINT",
+    "OPENAI_BASE_URL",
+    "COMMIT_MSG_LLM_MODEL",
+    "OPENAI_MODEL",
+}
+API_KEY_ENV_NAMES = (
+    "COMMIT_MSG_LLM_API_KEY",
+    "CLI_PROXY_API_KEY",
+    "OPENAI_API_KEY",
+    "LLM_API_KEY",
+)
+BASE_URL_ENV_NAMES = (
+    "COMMIT_MSG_LLM_BASE_URL",
+    "CLI_PROXY_API_ENDPOINT",
+    "OPENAI_BASE_URL",
+)
+MODEL_ENV_NAMES = ("COMMIT_MSG_LLM_MODEL", "OPENAI_MODEL")
 
 
 def git(*args: str) -> str:
@@ -47,11 +70,14 @@ def run_local_hook(hook_name: str, hook_args: list[str]) -> int:
 
 
 def has_staged_changes() -> bool:
-    return subprocess.run(
-        ["git", "diff", "--cached", "--quiet", "--no-ext-diff"],
-        stderr=subprocess.DEVNULL,
-        check=False,
-    ).returncode == 1
+    return (
+        subprocess.run(
+            ["git", "diff", "--cached", "--quiet", "--no-ext-diff"],
+            stderr=subprocess.DEVNULL,
+            check=False,
+        ).returncode
+        == 1
+    )
 
 
 def has_non_comment_content(message_path: str) -> bool:
@@ -85,6 +111,47 @@ def staged_context(max_chars: int) -> str:
     )
 
 
+def first_configured_value(names: tuple[str, ...]) -> str:
+    for name in names:
+        value = os.environ.get(name)
+        if value:
+            return value
+    return ""
+
+
+def load_secret_env() -> None:
+    secrets_path = os.path.expanduser(
+        os.environ.get("COMMIT_MSG_LLM_SECRETS", "~/.secrets")
+    )
+    try:
+        with open(secrets_path, "r", encoding="utf-8") as secrets_file:
+            for line in secrets_file:
+                stripped = line.strip()
+                if not stripped or stripped.startswith("#") or "=" not in stripped:
+                    continue
+                if stripped.startswith("export "):
+                    stripped = stripped[len("export ") :].lstrip()
+                name, raw_value = stripped.split("=", 1)
+                name = name.strip()
+                if name not in SECRET_ENV_NAMES or os.environ.get(name):
+                    continue
+                try:
+                    value = shlex.split(raw_value, comments=False, posix=True)[0]
+                except (IndexError, ValueError):
+                    value = raw_value.strip().strip("'\"")
+                if value:
+                    os.environ[name] = value
+    except OSError:
+        return
+
+
+def normalize_openai_base_url(base_url: str) -> str:
+    base_url = base_url.rstrip("/")
+    if not base_url.endswith("/v1"):
+        base_url = f"{base_url}/v1"
+    return base_url
+
+
 def first_choice_text(response_body: bytes) -> str:
     payload = json.loads(response_body.decode("utf-8"))
     choices = payload.get("choices") or []
@@ -93,7 +160,9 @@ def first_choice_text(response_body: bytes) -> str:
     message = choices[0].get("message") or {}
     content = message.get("content") or ""
     if isinstance(content, list):
-        return "".join(part.get("text", "") for part in content if isinstance(part, dict))
+        return "".join(
+            part.get("text", "") for part in content if isinstance(part, dict)
+        )
     return str(content)
 
 
@@ -111,24 +180,17 @@ def clean_message(text: str) -> str:
 
 
 def request_commit_message(context: str) -> str:
-    api_key = (
-        os.environ.get("COMMIT_MSG_LLM_API_KEY")
-        or os.environ.get("OPENAI_API_KEY")
-        or os.environ.get("LLM_API_KEY")
-    )
+    load_secret_env()
+    api_key = first_configured_value(API_KEY_ENV_NAMES)
     if not api_key:
-        raise RuntimeError("OPENAI_API_KEY is not set")
+        raise RuntimeError(
+            "COMMIT_MSG_LLM_API_KEY, CLI_PROXY_API_KEY, OPENAI_API_KEY, or LLM_API_KEY is not set"
+        )
 
-    base_url = (
-        os.environ.get("COMMIT_MSG_LLM_BASE_URL")
-        or os.environ.get("OPENAI_BASE_URL")
-        or DEFAULT_BASE_URL
-    ).rstrip("/")
-    model = (
-        os.environ.get("COMMIT_MSG_LLM_MODEL")
-        or os.environ.get("OPENAI_MODEL")
-        or DEFAULT_MODEL
+    base_url = normalize_openai_base_url(
+        first_configured_value(BASE_URL_ENV_NAMES) or DEFAULT_BASE_URL
     )
+    model = first_configured_value(MODEL_ENV_NAMES) or DEFAULT_MODEL
     timeout = float(os.environ.get("COMMIT_MSG_LLM_TIMEOUT", "8"))
 
     body = {
@@ -146,8 +208,7 @@ def request_commit_message(context: str) -> str:
             {
                 "role": "user",
                 "content": (
-                    "Propose a commit message for these staged changes:\n\n"
-                    + context
+                    "Propose a commit message for these staged changes:\n\n" + context
                 ),
             },
         ],
@@ -208,8 +269,17 @@ def main() -> int:
         proposed_message = request_commit_message(staged_context(max_chars))
         if proposed_message:
             prepend_message(message_path, proposed_message)
-    except (OSError, subprocess.SubprocessError, urllib.error.URLError, ValueError, RuntimeError) as error:
-        print(f"prepare-commit-msg: LLM suggestion skipped: {error_summary(error)}", file=sys.stderr)
+    except (
+        OSError,
+        subprocess.SubprocessError,
+        urllib.error.URLError,
+        ValueError,
+        RuntimeError,
+    ) as error:
+        print(
+            f"prepare-commit-msg: LLM suggestion skipped: {error_summary(error)}",
+            file=sys.stderr,
+        )
 
     return 0
 

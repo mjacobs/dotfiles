@@ -8,7 +8,3 @@ export EDITOR=nvim
 # Warp
 ################################################################################
 #export WARP_ENABLE_WAYLAND=1
-
-
-# Added by Antigravity CLI installer
-export PATH="/home/mj/.local/bin:$PATH"

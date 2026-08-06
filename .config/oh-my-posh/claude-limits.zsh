@@ -21,7 +21,7 @@ typeset -g CLAUDE_LIMITS_CACHE="${CLAUDE_LIMITS_CACHE:-${XDG_CACHE_HOME:-$HOME/.
 (( ${+CLAUDE_LIMITS_ICON} ))        || typeset -g CLAUDE_LIMITS_ICON=''        # nerd-font hourglass (U+F252)
 (( ${+CLAUDE_LIMITS_RESET_GLYPH} )) || typeset -g CLAUDE_LIMITS_RESET_GLYPH='' # nerd-font refresh (U+F01E)
 
-zmodload -F zsh/datetime +b:EPOCHSECONDS 2>/dev/null
+zmodload -F zsh/datetime +p:EPOCHSECONDS 2>/dev/null
 
 _cl_reset() {   # REPLY := "2h13m" / "5d3h" / "47m" for epoch $1 vs now $2; empty if past/blank
   local t=$1 now=$2 d; REPLY=""
@@ -36,6 +36,7 @@ _cl_reset() {   # REPLY := "2h13m" / "5d3h" / "47m" for epoch $1 vs now $2; empt
 _claude_limits_precmd() {
   emulate -L zsh
   export CLAUDE_LIMITS=""
+  [[ -n ${EPOCHSECONDS:-} ]] || return
   local f="$CLAUDE_LIMITS_CACHE"; [[ -r $f ]] || return
   local line="$(<$f)"; [[ -n $line ]] || return
 

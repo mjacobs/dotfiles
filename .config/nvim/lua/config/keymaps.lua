@@ -6,3 +6,6 @@
 vim.keymap.set("n", "q", function()
   Snacks.picker.buffers()
 end, { desc = "Buffer list" })
+
+-- Restore macro recording since 'q' is mapped to buffer list
+vim.keymap.set("n", "Q", "q", { desc = "Record macro" })

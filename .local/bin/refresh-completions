@@ -1,86 +1,50 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+### zsh ########################################################################
+# zsh completions are owned by .zshrc (regen_zsh_completion_if_needed), which
+# auto-regenerates a tool's completion whenever its binary is newer than the
+# cache. This script is only the force-regen escape hatch: clear the cache and
+# the next interactive zsh rebuilds everything. Do NOT add zsh generators here
+# — add tools to the regen list in .zshrc instead.
+
 ZSH_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/zsh/completions"
 BASH_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/bash/completions"
 
 mkdir -p "$ZSH_DIR" "$BASH_DIR"
 
+echo "zsh: clearing cached completions ($ZSH_DIR) and compdump"
+rm -f "$ZSH_DIR"/_* "${ZDOTDIR:-$HOME}"/.zcompdump*
+echo "zsh: completions will regenerate on next shell start"
+
+### bash (fallback shell) ######################################################
+
 have() {
   command -v "$1" >/dev/null 2>&1
-}
-
-generate() {
-  local shell_name="$1"
-  local dir="$2"
-  local cmd="$3"
-  local out="$4"
-  shift 4
-  local tmpfile="$dir/$out.$$.tmp"
-
-  have "$cmd" || return 0
-
-  printf '%s: generating %s\n' "$shell_name" "$out"
-  if "$@" 2>/dev/null | sed '/./,$!d; s/`/\\`/g' >|"$tmpfile" && [[ -s "$tmpfile" ]]; then
-    mv -f "$tmpfile" "$dir/$out"
-  else
-    rm -f "$tmpfile"
-    printf '%s: skipped %s\n' "$shell_name" "$out" >&2
-  fi
-}
-
-zsh_gen() {
-  local cmd="$1"
-  local out="$2"
-  shift 2
-
-  generate zsh "$ZSH_DIR" "$cmd" "$out" "$@"
 }
 
 bash_gen() {
   local cmd="$1"
   local out="$2"
   shift 2
+  local tmpfile="$BASH_DIR/$out.$$.tmp"
 
-  generate bash "$BASH_DIR" "$cmd" "$out" "$@"
+  have "$cmd" || return 0
+
+  printf 'bash: generating %s\n' "$out"
+  if "$@" 2>/dev/null | sed '/./,$!d; s/`/\\`/g' >|"$tmpfile" && [[ -s "$tmpfile" ]]; then
+    mv -f "$tmpfile" "$BASH_DIR/$out"
+  else
+    rm -f "$tmpfile"
+    printf 'bash: skipped %s\n' "$out" >&2
+  fi
 }
 
-# Rust
-zsh_gen rustup _rustup rustup completions zsh
-zsh_gen rustup _cargo rustup completions zsh cargo
-
-# Kubernetes
-zsh_gen kubectl _kubectl kubectl completion zsh
 bash_gen kubectl kubectl.bash kubectl completion bash
-
-# Docker
-zsh_gen docker _docker docker completion zsh
 bash_gen docker docker.bash docker completion bash
-
-# GitHub CLI
-zsh_gen gh _gh gh completion -s zsh
 bash_gen gh gh.bash gh completion -s bash
-
-# Tailscale
-zsh_gen tailscale _tailscale tailscale completion zsh
 bash_gen tailscale tailscale.bash tailscale completion bash
-
-# Mise
-zsh_gen mise _mise mise completion zsh
 bash_gen mise mise.bash mise completion bash
-
-# Optional tools that may not be installed on every machine.
-zsh_gen helm _helm helm completion zsh
 bash_gen helm helm.bash helm completion bash
-
-zsh_gen kind _kind kind completion zsh
 bash_gen kind kind.bash kind completion bash
-
-zsh_gen task _task task --completion zsh
 bash_gen task task.bash task --completion bash
-
-if [[ -n "${ZDOTDIR:-}" ]]; then
-  rm -f "$ZDOTDIR"/.zcompdump*
-else
-  rm -f "$HOME"/.zcompdump*
-fi

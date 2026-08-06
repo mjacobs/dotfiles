@@ -1,0 +1,12 @@
+#!/bin/sh
+# Toggle voxtype dictation from an external trigger (keyd hyper+v chord).
+#
+# keyd's command() runs this as root and the skill wraps it in `su mj`, which
+# gives a bare env with no XDG_RUNTIME_DIR. voxtype's `record` commands reach the
+# --user daemon via its state file under $XDG_RUNTIME_DIR/voxtype, so export it.
+# No DBus needed (record uses SIGUSR1/2 + the state file, not the session bus).
+#
+# Complements the built-in ScrollLock hotkey (hold-to-talk) — this chord is
+# press-to-start / press-to-stop (toggle). Both stay active.
+export XDG_RUNTIME_DIR=/run/user/1000
+exec /usr/bin/voxtype record toggle

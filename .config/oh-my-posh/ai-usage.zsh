@@ -24,12 +24,13 @@ typeset -g AI_USAGE_MODE="${AI_USAGE_MODE:-total}"      # total | split
 typeset -g _AI_USAGE_SCRIPT="${HOME}/.config/oh-my-posh/scripts/ai-usage.sh"
 
 # Needed for fast mtime math without spawning `date`/`stat`.
-zmodload -F zsh/datetime +b:EPOCHSECONDS 2>/dev/null
+zmodload -F zsh/datetime +p:EPOCHSECONDS 2>/dev/null
 zmodload -F zsh/stat +b:zstat 2>/dev/null
 
 _ai_usage_refresh() {
   emulate -L zsh
   [[ -x "$_AI_USAGE_SCRIPT" ]] || return 0
+  [[ -n ${EPOCHSECONDS:-} ]] || return 0
   local f="$AI_USAGE_CACHE"
   mkdir -p "${f:h}" 2>/dev/null
   if [[ -f "$f" ]]; then

@@ -9,6 +9,16 @@ return {
       { "type", "asc" },
       { "name", "asc" },
     },
+    -- Use trash instead of deleting permanently
+    delete_to_trash = true,
+    view_options = {
+      -- Show hidden files by default (like dotfiles)
+      show_hidden = true,
+    },
+  },
+  keys = {
+    -- Toggle floating file explorer
+    { "<leader>-", "<cmd>Oil --float<cr>", desc = "Open parent directory in float" },
   },
   -- Optional dependencies
   dependencies = { { "nvim-mini/mini.icons", opts = {} } },

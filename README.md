@@ -20,9 +20,14 @@ yadm push
 
 ### Prerequisites
 
+yadm itself isn't in the Fedora repos — it needs Homebrew (Linuxbrew) first:
+
 ```bash
-brew install yadm fzf bat delta oh-my-posh neovim
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+# Linuxbrew (non-interactive)
+NONINTERACTIVE=1 /bin/bash -c \
+  "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+brew install yadm
 ```
 
 ### Clone and checkout
@@ -32,21 +37,28 @@ yadm clone git@github.com:mjacobs/dotfiles.git
 yadm config status.showUntrackedFiles no
 ```
 
-### Post-checkout
+`yadm clone` automatically runs `~/.config/yadm/bootstrap` afterward — see
+[Bootstrap Script](#bootstrap-script) below. It installs everything else
+(dnf packages, the rest of the Brewfile, mise, rustup, oh-my-zsh + its custom
+plugins, TPM, a starter `~/.secrets`, and — if you already have the GPG key —
+decrypts `.pgpass`/`rclone.conf`).
+
+To re-run it later (e.g. after editing `~/.config/dnf-packages.txt`):
 
 ```bash
-# oh-my-zsh custom plugins
-git clone https://github.com/Aloxaf/fzf-tab ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/fzf-tab
-git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
-git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
-git clone https://github.com/le0me55i/zsh-shift-select ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-shift-select
-
-# tmux plugin manager
-git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
-# then in tmux: prefix + I
-
-# Create ~/.secrets with API keys (chmod 600, not tracked)
+yadm bootstrap
 ```
+
+### Manual follow-ups bootstrap can't do for you
+
+- `gh auth login` (GitHub CLI auth; `.gitconfig` uses `gh` as its credential
+  helper)
+- Import the GPG signing/encryption key (fingerprint ends in
+  `D787BA76BDB81BA1`) if it isn't already in your keyring, then
+  `yadm decrypt`
+- Fill in real values in `~/.secrets` (copied from
+  `~/.config/secrets.template` — see [Secrets](#secrets) below)
+- Create a per-machine `~/.zshrc.local` if this box needs overrides
 
 ## yadm Features
 
@@ -116,28 +128,29 @@ yadm config yadm.cipher age
 
 ### Bootstrap Script
 
-A `~/.config/yadm/bootstrap` script (if present and executable) runs
-automatically after `yadm clone`. Use it to automate post-checkout setup:
+`~/.config/yadm/bootstrap` (present, executable, idempotent) runs
+automatically after `yadm clone` and can be re-run any time via
+`yadm bootstrap`. In dependency order it:
 
-```bash
-#!/bin/bash
-# ~/.config/yadm/bootstrap
+1. `sudo dnf install -y` everything in `~/.config/dnf-packages.txt` (skips
+   gracefully on non-Fedora)
+2. Installs Linuxbrew if absent, then
+   `brew bundle --file=~/.config/homebrew/Brewfile`
+3. Installs mise (dnf/brew) if absent, then `mise install` (reads the tracked
+   `~/.config/mise/config.toml`)
+4. Installs rustup if `~/.cargo/bin/rustup` is absent
+5. Installs oh-my-zsh unattended if absent, then clones the 5 required custom
+   plugins (see [Oh-My-Zsh Plugins](#oh-my-zsh-plugins))
+6. Clones TPM if absent and runs its `install_plugins`
+7. Creates `~/.secrets` from `~/.config/secrets.template` if missing
+   (chmod 600, placeholder values — you still need to fill it in)
+8. Runs `yadm decrypt` if the GPG key is already in your keyring, otherwise
+   prints instructions to import it first
+9. Prints a summary of anything left to do by hand
 
-# Install Homebrew packages
-brew bundle --file="$HOME/.config/brew/Brewfile" || true
-
-# Clone oh-my-zsh plugins
-for repo in Aloxaf/fzf-tab zsh-users/zsh-autosuggestions zsh-users/zsh-syntax-highlighting; do
-  dir="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/$(basename "$repo")"
-  [[ -d "$dir" ]] || git clone "https://github.com/$repo" "$dir"
-done
-
-# tmux plugin manager
-[[ -d ~/.tmux/plugins/tpm ]] || git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
-
-# Decrypt secrets
-yadm decrypt || echo "No encrypted archive found (expected on first setup)"
-```
+Package manifests live in `~/.config/dnf-packages.txt` (dnf) and
+`~/.config/homebrew/Brewfile` (Linuxbrew) — edit those, not the bootstrap
+script, to add/remove packages.
 
 ## Architecture
 
@@ -146,17 +159,35 @@ yadm decrypt || echo "No encrypted archive found (expected on first setup)"
 - `~/.zshrc` - oh-my-zsh plugins, ssh-agent, homebrew, oh-my-posh prompt
 - `~/.zshenv` - PATH additions (`.local/bin`, JetBrains, gcloud, bun, cargo)
 - `~/.zprofile` - LANG, EDITOR
-- `~/.config/aliases.sh` - Custom aliases (sourced by .zshrc)
+- `~/.config/zsh/` - OS-specific rc/env snippets sourced from `.zshrc`/`.zshenv`
+- `~/.config/aliases.sh` - Custom aliases (sourced by .zshrc; interactive
+  shells only — they do NOT apply in non-interactive/agent shells)
 - `~/.config/nvim/` - Neovim config (LazyVim-based)
 - `~/.gitconfig` - Git aliases, delta pager, gh credential helper
 - `~/.tmux.conf` - Tmux config with TPM and tmux-powerkit
-- `~/.secrets` - API keys (NOT tracked)
+- `~/.config/mise/config.toml` - mise-managed runtimes/CLIs (currently:
+  node, go, python, uv, poetry, gcloud, lazygit, lazydocker,
+  markdownlint-cli2, prettier, and more — see the file for the full list)
+- `~/.config/dnf-packages.txt` - dnf package manifest for bootstrap
+- `~/.config/homebrew/Brewfile` - Linuxbrew package manifest for bootstrap
+- `~/.config/secrets.template` - structure-only template for `~/.secrets`
+- `~/.secrets` - API keys (NOT tracked; see [Secrets](#secrets))
 
 ### Oh-My-Zsh Plugins
 
-`fzf`, `fzf-tab`, `git`, `history-substring-search`, `zsh-autosuggestions`, `zsh-syntax-highlighting`, `zsh-shift-select`
+`fzf`, `fzf-tab`, `git`, `history-substring-search`, `zsh-autosuggestions`,
+`zsh-syntax-highlighting`, `zsh-shift-select`, `llm`
 
-Custom plugins live in `~/.oh-my-zsh/custom/plugins/`.
+`fzf` and `git` ship with oh-my-zsh itself. The other 5 are custom plugins
+cloned by the bootstrap script into `~/.oh-my-zsh/custom/plugins/`:
+
+| Plugin                    | Source                                              |
+| ------------------------- | ---------------------------------------------------- |
+| `fzf-tab`                 | https://github.com/Aloxaf/fzf-tab                    |
+| `zsh-autosuggestions`     | https://github.com/zsh-users/zsh-autosuggestions     |
+| `zsh-syntax-highlighting` | https://github.com/zsh-users/zsh-syntax-highlighting |
+| `zsh-shift-select`        | https://github.com/jirutka/zsh-shift-select          |
+| `llm`                     | https://github.com/eliyastein/llm-zsh-plugin         |
 
 ## Interactive Shell
 
@@ -172,18 +203,68 @@ Custom plugins live in `~/.oh-my-zsh/custom/plugins/`.
 - **fzf-tab**: Fuzzy completion with file previews (uses `bat` and `lsd`)
 - **Grouping**: Completions grouped by type with colored headers
 - **Navigation**: Use `<` and `>` to switch between completion groups
+- **Auto-regenerated completions**: `.zshrc`'s `regen_zsh_completion_if_needed`
+  generates zsh completions for tools whose binary is newer than the cached
+  copy (agentsview, bd, docker, gh, kata, kubectl, mise, rustup/cargo,
+  roborev, tailscale, yas, and more) into
+  `${XDG_CACHE_HOME:-~/.cache}/zsh/completions`, prepended to `fpath`. This
+  happens automatically on shell start — no manual step needed.
+- **`~/.local/bin/refresh-completions`**: a force-regen escape hatch (wipes
+  the cache and re-triggers the `.zshrc` logic) plus bash completion
+  generation. Only needed if a completion looks stale and the mtime check
+  above didn't catch it.
 
 ### Prompt
 
-oh-my-posh with theme at `~/.cache/oh-my-posh/themes/kushal.omp.json`.
+oh-my-posh, theme resolved at `.zshrc` load time (first match wins):
+
+1. `~/.config/oh-my-posh/themes/` — custom Catppuccin Mocha themes, tracked
+   in this repo (`mocha-evolution.omp.json` by default; others available)
+2. oh-my-posh's own built-in default
+
+Set `OMP_THEME_NAME` in `~/.zshrc.local` to pick a different theme per
+machine. The prompt degrades gracefully (falls through to oh-my-posh's
+built-in init) if `oh-my-posh` itself isn't installed. To try stock
+oh-my-posh themes, browse <https://ohmyposh.dev/docs/themes> and drop a
+`.omp.json` into the tracked themes dir. (The old `omp-manager` tool that
+provided a local stock-theme set was retired 2026-07-08.)
 
 ### Notable Aliases
 
 - `cat` → `bat`, `vim` → `nvim`, `ls` → `lsd`
-- `c`/`v` → xclip copy/paste
+- `c`/`v` → `wl-copy`/`wl-paste` (Wayland clipboard)
 - `g` → glow (markdown reader), `j` → journalctl, `s` → systemctl
 
 ### GPG/SSH
 
-GPG is used for commit signing only. SSH authentication uses ssh-agent (started
-in `.zshrc` if `$SSH_AUTH_SOCK` is missing).
+Git commits/tags are signed with the **SSH key** `~/.ssh/id_ed25519` via
+ssh-agent (`gpg.format=ssh` in `.gitconfig`) — no passphrase prompts, works in
+non-interactive/agent shells. Local verification uses the tracked
+`~/.config/git/allowed_signers`. The public key must be registered as a
+*signing* key on each forge for "Verified" badges (GitHub:
+`gh ssh-key add ~/.ssh/id_ed25519.pub --type signing`; Gitea: user settings →
+SSH keys).
+
+GPG is now used **only** for `yadm encrypt`/`decrypt` (key fingerprint
+`63BFD09F75BA576EA641B245D787BA76BDB81BA1`, short ID `D787BA76BDB81BA1`). SSH
+authentication uses ssh-agent (started in `.zshrc` if `$SSH_AUTH_SOCK` is
+missing).
+
+## Secrets
+
+`~/.secrets` holds API keys/tokens and is sourced by `.zshrc`. It is
+deliberately **not tracked** by yadm and never contains real values in this
+repo — instead:
+
+- `~/.config/secrets.template` (tracked) reproduces the variable names and
+  section comments of `~/.secrets` with every value replaced by a
+  `<from-bitwarden>` placeholder.
+- On a machine with no `~/.secrets`, `yadm bootstrap` copies the template to
+  `~/.secrets` (`chmod 600`) and prints a reminder to fill in real values.
+- Keep `secrets.template` in sync by hand when you add a new key to
+  `~/.secrets` — it's structure documentation, not generated.
+
+Two files (`.pgpass`, `.config/rclone/rclone.conf`) go through yadm's GPG
+encryption instead (see [Encrypted Files](#encrypted-files)) since they need
+to round-trip through the repo itself rather than being freshly minted per
+machine.

@@ -31,6 +31,7 @@ disable = [
   "jetbrains_toolbox",
   "jetbrains_webstorm",
   "gcloud",
+  "antigravity",
   "uv", # mise-managed
   "tmux" # mise-managed
 ]
@@ -133,6 +134,14 @@ cleanup = true
 # mise installs the new version into a fresh dir and repoints `latest`, so it
 # never blocks on a running uvx process.
 "uv (via mise)" = "mise upgrade uv"
+
+# oh-my-posh self-update (no native topgrade step). The self-installer build
+# replaces the binary in place at a stable path (~/.local/bin), so upgrades
+# never break already-open shells — unlike the Homebrew build, whose
+# version-stamped Cellar path vanishes on upgrade. The guard skips machines
+# where oh-my-posh is still brew-managed (the brew step upgrades it there;
+# self-upgrading would clobber the Cellar copy).
+"oh-my-posh" = 'case "$(command -v oh-my-posh)" in *Cellar/oh-my-posh*) true ;; *) oh-my-posh upgrade ;; esac'
 
 
 [python]

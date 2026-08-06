@@ -1,0 +1,11 @@
+[463f676b-70dc-4a12-a512-22110448002e]
+Description=fix chrome app height
+size=1200,800
+sizerule=3
+types=1
+wmclass=^crx_.*
+wmclassmatch=3
+
+[General]
+count=1
+rules=463f676b-70dc-4a12-a512-22110448002e

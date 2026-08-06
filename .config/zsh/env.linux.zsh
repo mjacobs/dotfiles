@@ -7,7 +7,6 @@
 
 # Additional Linux PATH entries
 typeset -U path
-path+=("${HOME}/.local/google-cloud-sdk/bin")
 path+=("${HOME}/.local/share/JetBrains/Toolbox/scripts")
 path+=('/usr/local/cuda/bin')
 export PATH

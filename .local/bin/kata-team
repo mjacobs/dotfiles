@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+### Compatibility shim: team projects are now federation spokes in the normal
+### local daemon. New shells and scripts should call `kata` directly.
+set -euo pipefail
+
+unset KATA_SERVER KATA_TRUST_PRIVATE_NETWORK KATA_AUTH_TOKEN
+exec kata "$@"

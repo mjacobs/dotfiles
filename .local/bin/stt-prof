@@ -1,0 +1,132 @@
+#!/usr/bin/env bash
+# stt-prof — switch the voxtype speech-to-text compute profile.
+#
+# Profiles are *intents*, not just hardware:
+#   ada    fp32 on the RTX 4000 SFF Ada   — default; ambient dictation, stays out of the way
+#   5090   fp32 on the RTX 5090            — burst; only when the Ada is busy and you're not using the 5090
+#   cpu    int8 on CPU (AVX-512)           — "evacuate the GPUs" so an experiment gets every byte of VRAM
+#
+# Mechanism: writes a user systemd drop-in (20-stt-prof.conf) that overrides
+# ExecStart (which backend binary, + --config for cpu) and CUDA_VISIBLE_DEVICES
+# (which card / none). Layered above the hand-written 10-cudnn.conf, which is left
+# untouched. `stt-prof revert` removes it.
+#
+# GPU wants fp32 (ORT-CUDA doesn't accelerate int8); CPU wants int8 (AVX-512 VNNI,
+# ~2x faster + ~4x smaller). Same English-only Parakeet v2 weights either way. The
+# cpu profile gets int8 via a generated config (config.cpu-int8.toml) selected with
+# voxtype's --config flag — regenerated from the canonical config.toml each switch,
+# because an explicit `model =` in config.toml outranks the VOXTYPE_MODEL env var.
+set -euo pipefail
+
+CUDA_BIN="/usr/lib/voxtype/cuda-13/voxtype-onnx-cuda-13"
+CPU_BIN="/usr/lib/voxtype/voxtype-onnx-avx512"
+CPU_MODEL="parakeet-tdt-0.6b-v2-int8"   # English-only v2, quantized (the strict win vs v3)
+UNIT="voxtype.service"
+DROPIN_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/voxtype.service.d"
+DROPIN="$DROPIN_DIR/20-stt-prof.conf"
+CFG="${XDG_CONFIG_HOME:-$HOME/.config}/voxtype/config.toml"
+CPU_CFG="${XDG_CONFIG_HOME:-$HOME/.config}/voxtype/config.cpu-int8.toml"
+MODELS_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/voxtype/models"
+
+# ---- pretty ----
+if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
+  B=$'\e[1m'; DIM=$'\e[2m'; R=$'\e[0m'
+  MAUVE=$'\e[38;5;183m'; PEACH=$'\e[38;5;216m'; TEAL=$'\e[38;5;115m'
+  GREEN=$'\e[38;5;151m'; YELLOW=$'\e[38;5;223m'; RED=$'\e[38;5;210m'
+else B=; DIM=; R=; MAUVE=; PEACH=; TEAL=; GREEN=; YELLOW=; RED=; fi
+say(){ printf '%s\n' "$*"; }
+die(){ printf '%sstt-prof: %s%s\n' "$RED" "$*" "$R" >&2; exit 1; }
+
+# Read the [parakeet] model from a config file (section-aware).
+parakeet_model(){ awk '/^\[/{s=$0} s=="[parakeet]" && /^[[:space:]]*model[[:space:]]*=/{gsub(/.*=[[:space:]]*"|".*/,""); print; exit}' "$1" 2>/dev/null; }
+# Resolve a GPU UUID by matching its name in `nvidia-smi -L` (stable across reboots).
+gpu_uuid(){ nvidia-smi -L 2>/dev/null | grep -i -- "$1" | sed -nE 's/.*UUID: (GPU-[0-9a-f-]+)\).*/\1/p' | head -1; }
+gpu_name_for_uuid(){ nvidia-smi -L 2>/dev/null | grep -F -- "$1" | sed -nE 's/^GPU [0-9]+: (.*) \(UUID.*/\1/p' | head -1; }
+
+write_dropin(){ # $1=profile $2=full ExecStart command $3=CUDA_VISIBLE_DEVICES
+  mkdir -p "$DROPIN_DIR"
+  {
+    printf '# Managed by stt-prof — do not edit by hand (re-run `stt-prof <profile>`).\n'
+    printf '# stt-prof:profile=%s\n' "$1"
+    printf '[Service]\n'
+    printf 'ExecStart=\n'
+    printf 'ExecStart=%s\n' "$2"
+    printf 'Environment=CUDA_VISIBLE_DEVICES=%s\n' "$3"
+  } >"$DROPIN"
+}
+
+apply(){ systemctl --user daemon-reload; systemctl --user restart "$UNIT"; }
+current_profile(){ [[ -f "$DROPIN" ]] && sed -nE 's/^# stt-prof:profile=(.*)/\1/p' "$DROPIN" | head -1 || echo "default"; }
+
+cmd_switch(){
+  local prof="$1" execcmd cvd uuid bin
+  case "$prof" in
+    ada)  uuid="$(gpu_uuid 'RTX 4000')"; [[ -n "$uuid" ]] || die "couldn't find the RTX 4000 Ada via nvidia-smi"; execcmd="$CUDA_BIN daemon"; cvd="$uuid" ;;
+    5090) uuid="$(gpu_uuid 'RTX 5090')"; [[ -n "$uuid" ]] || die "couldn't find the RTX 5090 via nvidia-smi";  execcmd="$CUDA_BIN daemon"; cvd="$uuid" ;;
+    cpu)
+      [[ -d "$MODELS_DIR/$CPU_MODEL" ]] || say "${YELLOW}note: $CPU_MODEL not present — fetch: voxtype setup --download --model $CPU_MODEL${R}"
+      # regenerate the cpu config from the canonical config, swapping ONLY the [parakeet] model to int8
+      awk -v m="$CPU_MODEL" '
+        /^\[/{sec=$0}
+        sec=="[parakeet]" && /^[[:space:]]*model[[:space:]]*=/ { print "model = \"" m "\""; next }
+        {print}
+      ' "$CFG" > "$CPU_CFG"
+      execcmd="$CPU_BIN --config $CPU_CFG daemon"; cvd="" ;;
+    *) die "unknown profile '$prof' (want: ada | 5090 | cpu)" ;;
+  esac
+  bin="${execcmd%% *}"; [[ -x "$bin" ]] || die "backend binary missing: $bin"
+  write_dropin "$prof" "$execcmd" "$cvd"
+  say "${DIM}→ applying profile ${R}${B}$prof${R}${DIM} (reload + restart voxtype)…${R}"
+  apply; sleep 1; cmd_status
+}
+
+cmd_status(){
+  local prof cvd cfgfile model prec bepid beexe card free
+  prof="$(current_profile)"
+  cvd="$(systemctl --user show "$UNIT" -p Environment 2>/dev/null | tr ' ' '\n' | sed -nE 's/^CUDA_VISIBLE_DEVICES=(.*)/\1/p' | head -1)"
+  cfgfile="$(systemctl --user show "$UNIT" -p ExecStart 2>/dev/null | grep -oE -- '--config [^ ;]+' | awk '{print $2}' | head -1)"
+  [[ -n "$cfgfile" && -f "$cfgfile" ]] || cfgfile="$CFG"
+  model="$(parakeet_model "$cfgfile")"; [[ -n "$model" ]] || model="?"
+  case "$model" in *-int8) prec="${TEAL}int8${R}";; *) prec="${PEACH}fp32${R}";; esac
+  bepid="$(pgrep -f 'voxtype-onnx-(cuda|avx)' 2>/dev/null | head -1 || true)"
+  beexe="$([[ -n "$bepid" ]] && readlink -f "/proc/$bepid/exe" 2>/dev/null || echo '?')"
+
+  printf '%s┌ voxtype STT profile%s\n' "$B$MAUVE" "$R"
+  printf '%s│%s profile     %s%s%s\n' "$MAUVE" "$R" "$B" "$prof" "$R"
+  printf '%s│%s model       %s  (%s)\n' "$MAUVE" "$R" "$model" "$prec"
+  if [[ -z "$cvd" ]]; then
+    printf '%s│%s compute     %sCPU%s (AVX-512, no GPU visible)\n' "$MAUVE" "$R" "$TEAL" "$R"
+  else
+    card="$(gpu_name_for_uuid "$cvd")"; [[ -n "$card" ]] || card="$cvd"
+    free="$(nvidia-smi --query-gpu=name,memory.free --format=csv,noheader 2>/dev/null | grep -F "${card#NVIDIA }" | sed -nE 's/.*, *(.*)/\1/p' | head -1)"
+    printf '%s│%s compute     %sGPU%s → %s%s%s%s\n' "$MAUVE" "$R" "$PEACH" "$R" "$B" "$card" "$R" "${free:+  ($free free)}"
+  fi
+  printf '%s│%s backend     %s%s\n' "$MAUVE" "$R" "${DIM}" "${beexe##*/}$R"
+  printf '%s└ %s%s\n' "$MAUVE" "$(systemctl --user is-active "$UNIT" 2>/dev/null)" "$R"
+}
+
+cmd_list(){
+  printf '%sstt-prof%s — voxtype compute profiles\n\n' "$B" "$R"
+  printf '  %sada%s    fp32 · RTX 4000 SFF Ada   %sdefault; ambient dictation%s\n' "$B$GREEN" "$R" "$DIM" "$R"
+  printf '  %s5090%s   fp32 · RTX 5090           %sburst; rarely needed%s\n' "$B$PEACH" "$R" "$DIM" "$R"
+  printf '  %scpu%s    int8 · CPU (AVX-512)      %sevacuate GPUs for an experiment%s\n\n' "$B$TEAL" "$R" "$DIM" "$R"
+  printf '  %sstt-prof <ada|5090|cpu>%s   switch (≈1–2s restart)\n' "$B" "$R"
+  printf '  %sstt-prof status%s            show current\n' "$B" "$R"
+  printf '  %sstt-prof revert%s            remove the stt-prof drop-in (back to 10-cudnn default)\n' "$B" "$R"
+}
+
+cmd_revert(){
+  [[ -f "$DROPIN" ]] || { say "no stt-prof drop-in present; already at default"; exit 0; }
+  rm -f "$DROPIN"
+  say "${DIM}→ removed $DROPIN; reload + restart…${R}"
+  apply; sleep 1; cmd_status
+}
+
+case "${1:-status}" in
+  ada|5090|cpu) cmd_switch "$1" ;;
+  status|st)    cmd_status ;;
+  list|ls)      cmd_list ;;
+  revert)       cmd_revert ;;
+  -h|--help|help) cmd_list ;;
+  *) die "unknown command '$1' (try: stt-prof list)" ;;
+esac

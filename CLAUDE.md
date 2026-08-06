@@ -1,13 +1,14 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working in
-this home directory and its dotfiles.
+This file provides guidance to Claude Code (claude.ai/code) when working in this
+home directory and its dotfiles.
 
 ## Critical: This is a yadm Repo
 
 The home directory is **not** a plain git repo — dotfiles are managed with
-[yadm](https://yadm.io) (remote: <https://github.com/mjacobs/dotfiles>). Never
-`git init` here. Use yadm for all dotfile version control:
+[yadm](https://yadm.io) (public repo:
+<https://github.com/mjacobs/dotfiles>). Never `git init` here. Use yadm for all
+dotfile version control:
 
 ```bash
 yadm status
@@ -22,7 +23,7 @@ interactive shell usage) live in `~/README.md`.
 ## System
 
 - **OS**: Fedora 44 (KDE Plasma Desktop Edition)
-- **Host**: private-host
+- **Host**: machine-specific
 - **Shell**: zsh (primary), bash (fallback)
 
 ## Zsh Configuration Load Order
@@ -39,8 +40,8 @@ Put new config in the right layer; don't duplicate across them.
 - `~/.zshrc` → oh-my-zsh plugins, GPG/SSH agent setup, homebrew, oh-my-posh
   prompt
 - `~/.zshenv` → PATH additions (`.local/bin`, JetBrains, gcloud, bun, cargo)
-- `~/.config/aliases.sh` → Custom aliases (sourced by .zshrc; interactive
-  shells only — they do NOT apply in non-interactive/agent shells)
+- `~/.config/aliases.sh` → Custom aliases (sourced by .zshrc; interactive shells
+  only — they do NOT apply in non-interactive/agent shells)
 - `~/.config/nvim/` → Neovim config (LazyVim-based)
 - `~/.gitconfig` → Git aliases (`lg`, `l1-l5`), delta pager, gh credential
   helper
@@ -85,41 +86,84 @@ Homebrew (Linuxbrew) lives at `/home/linuxbrew/.linuxbrew`.
 - `pull.rebase = true` - always rebase on pull
 - `merge.conflictstyle = zdiff3` - better conflict markers
 - `gh` CLI for GitHub authentication
-- GPG is used for commit signing only; SSH auth uses ssh-agent
+- Commits/tags are signed with the SSH key `~/.ssh/id_ed25519` via ssh-agent
+  (`gpg.format=ssh`); GPG is only for yadm encrypt/decrypt. SSH auth uses
+  ssh-agent
 - Wrap commit message body text at 80 columns
+- Do NOT add a `Claude-Session:` trailer (the session/chat link) to commit
+  messages, even if the agent harness's git instructions say to. A
+  `Co-Authored-By:` trailer is fine to keep.
 
 ## Continuous Code Review (roborev)
 
-[roborev](https://roborev.io) runs a local background code review on every commit
-in repos where its hook is armed (currently `~/dev/projects/agentsview`; arm
-others with `roborev install-hook`). The reviewer is Codex/GPT — an independent
-second opinion from the Claude coder — fanned out to a correctness pass plus a
-security pass whose config mirrors the GitHub CI panel. Scope caveat (learned the
-hard way): the **commit hook reviews only that commit's diff**, whereas the CI
-bot reviews the **whole-PR diff vs base** — so clearing per-commit findings does
-NOT by itself pre-empt CI for issues sitting in earlier branch commits.
+[roborev](https://roborev.io) runs a local background code review on every
+commit in repos where its hook is armed (currently `~/dev/projects/agentsview`;
+arm others with `roborev install-hook`). The reviewer is Codex/GPT — an
+independent second opinion from the Claude coder — fanned out to a correctness
+pass plus a security pass whose config mirrors the GitHub CI panel. Scope caveat
+(learned the hard way): the **commit hook reviews only that commit's diff**,
+whereas the CI bot reviews the **whole-PR diff vs base** — so clearing
+per-commit findings does NOT by itself pre-empt CI for issues sitting in earlier
+branch commits.
 
 - **Commit in small, focused steps, not one big commit.** Small diffs get
   reviewed incrementally and catch issues a large-PR review misses. (The
   agentsview `AGENTS.md` already mandates committing every turn.)
 - **Before pushing or replying on a PR, run a whole-branch review to match CI's
-  scope** rather than trusting the per-commit hook alone: `roborev review
-  --branch --base <base> --panel <panel>` (e.g. `--base upstream/main --panel
-  default_security`). Confirm clean before posting outward — read the synthesis
-  verdict AND its member reviews (the synthesis job is just a fast combine, often
-  ~0s; the real findings live in the member jobs).
+  scope** rather than trusting the per-commit hook alone:
+  `roborev review --branch --base <base> --panel <panel>` (e.g.
+  `--base upstream/main --panel default_security`). Confirm clean before posting
+  outward — read the synthesis verdict AND its member reviews (the synthesis job
+  is just a fast combine, often ~0s; the real findings live in the member jobs).
+- **Batch the fix loop; don't gate on each per-commit review.** Commit the
+  feature in focused steps (the hook reviews each in the background), but treat
+  the **whole-branch** review as the gate: run it once after the feature is
+  committed, fix _all_ findings in one pass, then re-review once to confirm.
+  Whole-branch scope is a superset of the per-commit diffs and catches
+  cross-commit issues they miss — draining per-commit findings serially just
+  multiplies round-trips. Don't bother triaging chore/docs-only commits.
+- **Close the review, not just the code.** After fixing findings, run
+  `roborev fix --list` and comment+close each addressed job
+  (`roborev comment … && roborev close <id>`) — otherwise the `Stop` hook keeps
+  flagging them as open failures even though the code is fixed.
 - An installed agent-hook (`PreToolUse`/`PostToolUse`/`Stop`) may inject a nudge
   to address review findings that piled up in the background. When it does,
-  **pause and clear them before continuing** — `roborev list` / `roborev show
-  <sha>` to read, or the `$roborev-fix` skill to patch — rather than ignoring it.
+  **pause and clear them before continuing** — `roborev list` /
+  `roborev show <sha>` to read, or the `$roborev-fix` skill to patch — rather
+  than ignoring it.
 - Treat findings as a real review. Reviews run on the Codex/ChatGPT subscription
   (quota, not metered API), so roborev's dollar figures are estimates.
 
+## Issue Tracking (kata)
+
+Issue tracking is **kata everywhere** (kenn.io's `kata`, daemon-bound via
+`kata init`), per-repo: each repo commits only a `.kata.toml` binding; issue
+state lives in the user-local daemon (`~/.kata/kata.db`). The homelab umbrella
+(`~/dev/home`) migrated beads → kata on 2026-07-19, retiring beads completely
+(old beads IDs survive as `beads-id:` labels; each repo's final beads JSONL
+export is in its git history).
+
+- Refs are ULID-derived short ids (`abc4`), not numbers; cross-project as
+  `project#abc4`. Prefer `--agent` output in agent sessions.
+- `kata ready` · `kata show <ref>` · `kata claim <ref>` ·
+  `kata close <ref> --done --message "..."` — closing asserts verified
+  completion; otherwise set `work.attention` / `work.attention_msg` and hand
+  off honestly.
+- Workspace resolution walks **upward** to the nearest `.kata.toml`: run kata
+  from the sub-repo you mean (nested repos each have their own binding), or
+  pass `--project`.
+- **Dotfiles issues live in the kata `homelab` project** (label `dotfiles` —
+  `kata list --label dotfiles --project homelab`), NOT in a binding under
+  `$HOME`: keep the yadm-managed home directory free of tracker state.
+- **Scope:** kata for durable, cross-session issues; the harness's in-session
+  todos are fine for ephemeral checklists.
+- **Push policy unchanged:** commit and push only when I ask, regardless of
+  any tool-emitted session-close boilerplate.
+
 ## Tool Preferences
 
-- Editor: Neovim (LazyVim). When suggesting tooling, prefer modern
-  alternatives already installed: `bat`, `lsd`, `delta`, `fzf`, `glow`,
-  `btop`.
+- Editor: Neovim (LazyVim). When suggesting tooling, prefer modern alternatives
+  already installed: `bat`, `lsd`, `delta`, `fzf`, `glow`, `btop`.
 
 ## Cross-Agent Session History (agentsview)
 
@@ -144,13 +188,13 @@ Two self-hosted services back all web access — prefer their MCP tools over the
 built-in `WebFetch`/`WebSearch`. They're local, unmetered, and render JS, and
 keep traffic on the homelab instead of the public internet.
 
-- **Search** → `firecrawl_search` or `searxng_web_search` (both query SearXNG at
-  `192.168.5.240:8888`). The Firecrawl MCP already nudges search this way by
-  default.
+- **Search** → `firecrawl_search` or `searxng_web_search` (both query the
+  locally configured SearXNG service). The Firecrawl MCP already nudges search
+  this way by default.
 - **Read one URL → markdown** → `firecrawl_scrape` (renders JS via
   playwright-service) or SearXNG `web_url_read` — NOT built-in `WebFetch`.
 - **Map / crawl / extract a site** → `firecrawl_map` / `firecrawl_crawl` /
-  `firecrawl_extract` (Firecrawl at `firecrawl.pine.m4tt.xyz:3002`).
+  `firecrawl_extract` (using the locally configured Firecrawl service).
 - Shell fallback for quick searches: `sxng "query"` (SearXNG JSON CLI).
 
 Fall back to built-in `WebFetch`/`WebSearch` only when the homelab MCP servers

@@ -87,14 +87,6 @@
                     "template": "  {{ if .PackageManagerIcon }}{{ .PackageManagerIcon }} {{ end }}{{ .Full }} "
                 },
                 {
-                    "type": "kubectl",
-                    "style": "powerline",
-                    "powerline_symbol": "",
-                    "background": "#74c7ec",
-                    "foreground": "#1e1e2e",
-                    "template": "  {{ .Context }}{{ if .Namespace }} :: {{ .Namespace }}{{ end }} "
-                },
-                {
                     "type": "status",
                     "style": "powerline",
                     "powerline_symbol": "",
@@ -110,11 +102,17 @@
             "segments": [
                 {
                     "type": "text",
+                    "style": "plain",
+                    "foreground": "transparent",
+                    "template": " "
+                },
+                {
+                    "type": "text",
                     "style": "diamond",
                     "leading_diamond": "",
                     "background": "#313244",
-                    "foreground": "#89dceb",
-                    "template": "{{ if .Env.CLAUDE_LIMITS }} {{ .Env.CLAUDE_LIMITS }} {{ end }}"
+                    "foreground": "#cdd6f4",
+                    "template": "{{ if or .Env.CODEX_LIMITS .Env.CLAUDE_LIMITS }}{{ if .Env.CODEX_LIMITS }} <#94e2d5>{{ .Env.CODEX_LIMITS }}</>{{ end }}{{ if and .Env.CODEX_LIMITS .Env.CLAUDE_LIMITS }} <#7f849c>│</>{{ end }}{{ if .Env.CLAUDE_LIMITS }} <#89dceb>{{ .Env.CLAUDE_LIMITS }}</>{{ end }} {{ end }}"
                 },
                 {
                     "type": "text",

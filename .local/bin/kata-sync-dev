@@ -1,0 +1,86 @@
+#!/bin/bash
+# kata-sync-dev: build kata from the local repo (working tree or a given
+# git ref) and swap it into ~/.local/bin/kata. Counterpart to kata-sync,
+# which restores the latest GitHub release.
+#
+# Unlike av-sync-dev there are no remote hosts: kata is a single local
+# binary plus a daemon it auto-starts, so a swap is build + atomic mv +
+# graceful daemon stop (the next kata command restarts it).
+#
+# Usage: kata-sync-dev [ref] [repo-dir]
+#   ref:      git rev to build (default: working tree as-is, incl. dirty)
+#   repo-dir: checkout to build from (default: $KATA_REPO,
+#             then ~/dev/projects/kata)
+
+set -euo pipefail
+
+REF="${1:-}"
+REPO="${2:-${KATA_REPO:-$HOME/dev/projects/kata}}"
+TARGET="$HOME/.local/bin/kata"
+
+if ! git -C "$REPO" rev-parse --git-dir >/dev/null 2>&1; then
+  echo "not a git checkout: $REPO" >&2
+  exit 1
+fi
+
+### Resolve what to build ##################################################
+BUILD_DIR="$REPO"
+WORKTREE=""
+cleanup() {
+  if [[ -n "$WORKTREE" ]]; then
+    git -C "$REPO" worktree remove --force "$WORKTREE" >/dev/null 2>&1 || true
+  fi
+}
+trap cleanup EXIT
+
+if [[ -n "$REF" ]]; then
+  SHA=$(git -C "$REPO" rev-parse --short "$REF^{commit}") || {
+    echo "unresolvable ref: $REF" >&2
+    exit 1
+  }
+  # Build from a throwaway worktree so the checkout is never disturbed.
+  WORKTREE=$(mktemp -d "${TMPDIR:-/tmp}/kata-sync-dev.XXXXXX")
+  git -C "$REPO" worktree add --detach --force "$WORKTREE" "$SHA" >/dev/null
+  BUILD_DIR="$WORKTREE"
+  LABEL="$REF @ $SHA"
+else
+  BRANCH=$(git -C "$REPO" rev-parse --abbrev-ref HEAD)
+  SHA=$(git -C "$REPO" rev-parse --short HEAD)
+  DIRTY=""
+  git -C "$REPO" diff-index --quiet HEAD -- || DIRTY=" (dirty)"
+  LABEL="$BRANCH @ $SHA$DIRTY"
+fi
+
+echo "--------------------------------------------------"
+echo "Building kata from $LABEL"
+echo "--------------------------------------------------"
+make -C "$BUILD_DIR" build
+
+LOCAL_BIN="$BUILD_DIR/kata"
+if [[ ! -x "$LOCAL_BIN" ]]; then
+  echo "build did not produce $LOCAL_BIN" >&2
+  exit 1
+fi
+"$LOCAL_BIN" version | head -1
+
+### Swap into place ########################################################
+# Stage then atomically move so a running daemon never sees a partial write.
+mkdir -p "$(dirname "$TARGET")"
+install -m 755 "$LOCAL_BIN" "$TARGET.new"
+mv "$TARGET.new" "$TARGET"
+
+# A kata earlier in PATH (e.g. a go-install copy in mise's per-Go-version
+# bin dir) would shadow the swap; remove any such stale copies.
+while read -r found; do
+  [[ "$found" == "$TARGET" ]] && continue
+  echo "removing stale kata shadowing $TARGET: $found"
+  rm -f "$found"
+done < <(type -ap kata)
+
+### Restart daemon #########################################################
+# Graceful stop; the next client command auto-starts the new binary.
+"$TARGET" daemon stop >/dev/null 2>&1 || true
+echo "--------------------------------------------------"
+echo "Installed: $("$TARGET" version | head -1)"
+"$TARGET" daemon status || true
+echo "Run 'kata-sync' to restore the latest release."

@@ -1,0 +1,8 @@
+.pgpass
+.config/rclone/rclone.conf
+.config/agentsview/sync-hosts
+.config/git/allowed_signers
+.ssh/config.local
+.config/kenn/private-terms.txt
+.config/tabby/config.yaml
+.config/zed/settings.json

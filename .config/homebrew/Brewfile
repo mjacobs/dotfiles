@@ -1,0 +1,149 @@
+# Brewfile — Linuxbrew (/home/linuxbrew/.linuxbrew) package manifest.
+#
+# Curated from `brew bundle dump` on 2026-07-06 (111 formulae installed via
+# dependency chains; this file lists only the leaves worth reinstalling
+# deliberately — `brew bundle` will pull in whatever those leaves need).
+#
+# Policy (see ~/CLAUDE.md): brew is for standalone CLIs that aren't fresh
+# enough in dnf, or that dnf doesn't ship at all. Things dnf now owns
+# (bat, jq, fzf, git-delta, zoxide, glow, lsd, ripgrep, etc — see
+# ~/.config/dnf-packages.txt) are intentionally NOT listed here even though
+# some lingered as brew leaves at audit time; don't reinstall them via brew.
+#
+# yadm itself is brew-only on Fedora (not in Fedora repos — verified via
+# `dnf info yadm` returning nothing).
+
+################################################################################
+# Taps actually in use below
+################################################################################
+tap "kenn-io/tap", "https://github.com/kenn-io/homebrew-tap.git", trusted: true
+
+################################################################################
+# Core (brew-only, genuinely used)
+################################################################################
+# Dotfiles manager itself — not in Fedora repos
+brew "yadm"
+# Colorize kubectl output — used by the `k` alias in aliases.sh
+brew "kubecolor"
+# Upgrade-everything runner — ~/.config/topgrade.toml is tracked
+brew "topgrade"
+# Extra zsh completions, sourced via fpath in .zshrc
+brew "zsh-completions"
+# Bash completion framework (some tools only ship bash completions)
+brew "bash-completion@2"
+# GNU compiler collection — needed as a native build toolchain for cargo/npm
+# native extensions on this machine
+brew "gcc"
+# macOS does not ship GnuPG; yadm needs it to decrypt the private archive.
+brew "gnupg" if OS.mac?
+# Use the native Keychain-aware prompt when GnuPG unlocks the archive key.
+brew "pinentry-mac" if OS.mac?
+
+################################################################################
+# Fonts
+################################################################################
+cask "font-symbols-only-nerd-font"
+
+################################################################################
+# VS Code extensions (tracked ~/.config/Code/User/settings.json)
+################################################################################
+vscode "anthropic.claude-code"
+vscode "esbenp.prettier-vscode"
+vscode "kilocode.kilo-code"
+vscode "openai.chatgpt"
+vscode "saoudrizwan.claude-dev"
+
+################################################################################
+# Go tools (brew bundle's `go` directive == `go install` tracking, separate
+# from the mise-managed go toolchain)
+################################################################################
+# go.kenn.io/kata — kenn.io's issue tracker CLI; alt to beads, see CLAUDE.md
+go "go.kenn.io/kata/cmd/kata"
+
+################################################################################
+# uv-managed global CLIs (brew bundle's `uv` directive)
+################################################################################
+uv "claude-monitor"
+uv "git-filter-repo"
+uv "google-agents-cli"
+uv "huggingface-hub[cli]"
+uv "litellm[cli]"
+uv "llm"
+uv "openhands"
+uv "posting"
+uv "strip-tags"
+uv "ttok"
+uv "twg"
+
+################################################################################
+# Flatpak apps
+################################################################################
+flatpak "it.mijorus.gearlever"
+flatpak "org.telegram.desktop"
+
+################################################################################
+# Occasional / review — installed today but not load-bearing for any tracked
+# config. Kept here as documentation of what's on the machine; NOT installed
+# by default. Uncomment individually if you actually want one back.
+################################################################################
+
+# --- misc CLI toys / niche tools ---
+# brew "aria2"                 # download manager w/ resume
+# brew "biome"                 # web toolchain (only if doing JS/TS work here)
+# brew "chafa"                 # terminal image/ANSI renderer
+# brew "gollama"               # manage local Ollama models
+# brew "jnv"                   # interactive jq JSON filter
+# brew "llmfit"                # estimate what LLMs fit your hardware
+# brew "nerdfetch"             # nerd-font fetch/splash script
+# brew "qman"                  # modern man page viewer
+# brew "ralph-orchestrator"    # multi-agent orchestration experiment
+# brew "sqlfluff"              # SQL linter/formatter
+# brew "viu"                   # terminal image viewer (rust)
+
+# --- personal taps (small side projects, install only if you know why) ---
+# tap "chojs23/tap"
+# brew "chojs23/tap/ec"                  # TUI git mergetool
+# cask "chojs23/tap/lazyagent"           # AI agent session observer
+# tap "dicklesworthstone/tap"
+# brew "dicklesworthstone/tap/bv"        # beads TUI
+# tap "janosmiko/tap"
+# brew "janosmiko/tap/lfk"               # k8s TUI navigator
+# tap "matthart1983/tap"
+# brew "matthart1983/tap/netwatch"       # network diagnostics TUI
+# tap "steipete/tap"
+# brew "steipete/tap/codexbar"           # menu bar AI usage CLI
+# tap "unhappychoice/tap"
+# brew "unhappychoice/tap/splashboard"   # terminal splash screen
+
+# --- go install-tracked extras (niche, project-specific) ---
+# go "github.com/jdefrancesco/dskDitto/cmd/dskDitto"
+# go "github.com/charmbracelet/freeze"
+# go "go.uber.org/nilaway/cmd/nilaway"
+
+# --- cargo-tracked extras ---
+# cargo "bttf"
+# cargo "cargo-cache"
+# cargo "cargo-update"
+# cargo "elf2uf2-rs"
+# cargo "elio"
+# cargo "jiq"
+# cargo "mcdu"
+# cargo "mdfried"
+# cargo "nviwatch"
+# cargo "oyui"
+# cargo "ratatui-image"
+# cargo "ripgrep"              # superseded by dnf's ripgrep; ~/.cargo/bin/rg
+#                               # currently shadows it in PATH — consider
+#                               # `cargo uninstall ripgrep` and relying on dnf
+# cargo "syswatch"
+# cargo "xh"
+# cargo "zenith"
+
+# --- uv-tracked local/repo-path installs (won't resolve until those repos
+#     are cloned & built — do NOT uncomment blindly on a fresh machine) ---
+# uv "agent-review", source: "file://${HOME}/dev/projects/auto-review/agent-review/dist/agent_review-0.1.0-py3-none-any.whl"
+# uv "memex-review", source: "file://${HOME}/dev/projects/auto-review/memex-review/dist/memex_review-0.1.0-py3-none-any.whl"
+# uv "memex-triage", source: "file://${HOME}/dev/projects/auto-review/memex-triage"
+# uv "memex-triage-cli", source: "file://${HOME}/dev/projects/auto-review/memex-triage-cli"
+# uv "omnigent"
+# uv "pvez", source: "file://${HOME}/dev/home/pvez"

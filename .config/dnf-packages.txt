@@ -1,0 +1,63 @@
+# dnf-packages.txt — core package manifest for `~/.config/yadm/bootstrap`
+#
+# One package name per line. Blank lines and lines starting with `#` are
+# comments and are stripped by the bootstrap script before `dnf install`.
+# Every name below was checked with:
+#   dnf repoquery --qf '%{name}' <pkg>
+# against Fedora 44 repos on 2026-07-06 and resolved.
+#
+# Policy (see ~/CLAUDE.md): dnf wins over mise/brew for anything the distro
+# ships fresh enough. Runtimes (node/go/python/etc) come from mise instead —
+# do not add them here. Rust comes from rustup, not dnf.
+
+################################################################################
+# Core system / shell
+################################################################################
+zsh
+git
+gnupg2
+tmux
+
+################################################################################
+# Editor
+################################################################################
+neovim
+
+################################################################################
+# Modern CLI replacements (aliased in ~/.config/aliases.sh)
+################################################################################
+bat
+lsd
+fzf
+git-delta
+zoxide
+ripgrep
+fd-find
+
+################################################################################
+# Markdown / docs
+################################################################################
+glow
+
+################################################################################
+# JSON / data wrangling
+################################################################################
+jq
+
+################################################################################
+# System monitoring / info
+################################################################################
+btop
+fastfetch
+
+################################################################################
+# Clipboard (Wayland-first; xclip kept for X11 fallback/tools that shell out
+# to it directly)
+################################################################################
+wl-clipboard
+xclip
+
+################################################################################
+# Runtime/tool version manager
+################################################################################
+mise

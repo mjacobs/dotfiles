@@ -3,7 +3,20 @@ onboarding = false
 [ui]
 show_agent_labels_on_pane_borders = true
 
-agent_panel_scope = "all"
+# Keep Herdr's mouse UI enabled. Ghostty reserves Shift+mouse as its native
+# bypass (`mouse-shift-capture = never`), so use Shift+middle-click to paste
+# the primary selection without giving up Herdr clicks, drags, or menus.
+mouse_capture = true
+
+# Agents panel as an attention queue: blocked/waiting agents bubble to the top
+# (replaces the removed agent_panel_scope; "spaces" = grouped-by-space default).
+agent_panel_sort = "priority"
+
+# Claude rows show the live terminal title (Claude Code updates it with its
+# current activity), so the sidebar shows what each Claude is working on.
+[ui.sidebar.agents.rows_by_agent]
+claude = [["state_icon", "workspace", "tab"], ["terminal_title_stripped"], ["agent"]]
+
 [ui.toast]
 delivery = "herdr"
 
@@ -11,8 +24,9 @@ delivery = "herdr"
 enabled = false
 
 [theme]
-name = "terminal"
+name = "one-dark"
 
+auto_switch = false
 [experimental]
 pane_history = true
 
@@ -34,6 +48,10 @@ focus_pane_right = ["prefix+l", "ctrl+shift+right"]
 previous_workspace = "ctrl+shift+up"
 next_workspace     = "ctrl+shift+down"
 
+# Jump straight to the Nth agent row. With agent_panel_sort = "priority",
+# prefix+alt+1 is always the agent most in need of attention.
+focus_agent = "prefix+alt+1..9"
+
 # Focus the next agent terminal that is waiting for input (status "blocked").
 # Press repeatedly to cycle through every waiting agent; toasts if none wait.
 # Uses a prefix chord so it never steals a keystroke from the focused agent.
@@ -43,4 +61,27 @@ next_workspace     = "ctrl+shift+down"
 [[keys.command]]
 key = "prefix+a"
 type = "shell"
-command = "/home/mj/.local/bin/herdr-focus-next-waiting"
+command = "herdr-focus-next-waiting"
+
+# AI quota popup: colored showy-quota strip + codexbar per-provider detail.
+# Any key inside the popup closes it; content refreshes every 30s.
+[[keys.command]]
+key = "prefix+u"
+type = "popup"
+command = "showy-quota-popup"
+width = 92
+height = 24
+
+# Lazygit over the current tab without disturbing the layout.
+# Press ctrl+b, release, then ctrl+g (prefix chords are sequential, not held);
+# or just hyper+g (keyd macros it). NOT alt+g: KDE grabs Alt+G globally for the
+# Application Launcher widget, and even keyd-emitted events pass through KDE.
+[[keys.command]]
+key = "prefix+ctrl+g"
+type = "popup"
+command = "lazygit"
+width = "80%"
+height = "80%"
+
+[update]
+channel = "preview"

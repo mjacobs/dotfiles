@@ -24,6 +24,11 @@ window-subtitle = working-directory
 window-height = 65
 window-width = 160
 
+# Isolate new launches from a wedged long-lived GTK/OpenGL instance. On this
+# KDE/NVIDIA Wayland machine, a days-old single-instance process has failed new
+# surfaces with error.SystemResources while fresh standalone processes work.
+gtk-single-instance = false
+
 theme = Adwaita Dark
 
 bold-is-bright = true
@@ -41,3 +46,28 @@ keybind = ctrl+shift+arrow_left=unbind
 keybind = ctrl+shift+arrow_right=unbind
 keybind = ctrl+shift+arrow_up=unbind
 keybind = ctrl+shift+arrow_down=unbind
+
+# A new *window* creates a surface inside the current process, which is exactly
+# the path that turns into gray panes when an hours-old GTK/OpenGL process
+# wedges (2026-07-01). Launch whole new terminals from an external launcher
+# instead — gtk-single-instance = false above makes each one its own process,
+# which is the actual mitigation. Restore with: ctrl+shift+n=new_window
+keybind = ctrl+shift+n=unbind
+
+# Splits and tabs restored 2026-07-20. Only ONE window runs herdr; every other
+# Ghostty window is plain, and those had no way to split or open a tab at all
+# (while still binding ctrl+shift+w=close_tab and full tab navigation). Same
+# gray-pane risk as above — if these start coming up gray, swap the actions
+# back to =unbind.
+keybind = ctrl+shift+e=new_split:down
+keybind = ctrl+shift+o=new_split:right
+keybind = ctrl+shift+t=new_tab
+
+# herdr runs with mouse_capture = true, so it grabs every raw mouse event
+# before Ghostty sees it: plain middle-click hits a no-op in herdr, and plain
+# right-click opens herdr's pane menu (Split/Zoom/Close) instead of a paste
+# menu. Forcing Shift to always bypass capture hands the click to Ghostty:
+#   Shift + middle-click -> paste PRIMARY selection (the copy-on-select buffer)
+#   Shift + right-click  -> Ghostty's context menu, which has a Paste entry
+# Plain (unshifted) clicks still go to herdr: focus pane, scroll, pane menu.
+mouse-shift-capture = never

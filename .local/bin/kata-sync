@@ -1,0 +1,38 @@
+#!/bin/bash
+# kata-sync: restore kata to the latest tagged release, replacing any
+# dev build swapped in by kata-sync-dev.
+#
+# Installs via `go install go.kenn.io/kata/cmd/kata@latest` (the
+# documented alternative to the katatracker.com release installer),
+# pinned to GOBIN=~/.local/bin so it lands where kata-sync-dev installs
+# and where the PATH expects it.
+#
+# Caution: if a dev build migrated the daemon's SQLite schema forward,
+# an older release may refuse or mishandle that data.
+
+set -euo pipefail
+
+TARGET="$HOME/.local/bin/kata"
+
+echo "--------------------------------------------------"
+echo "Restoring latest kata release (go install @latest)"
+echo "--------------------------------------------------"
+GOBIN="$HOME/.local/bin" go install go.kenn.io/kata/cmd/kata@latest
+
+if [[ ! -x "$TARGET" ]]; then
+  echo "go install did not produce $TARGET" >&2
+  exit 1
+fi
+
+# Remove stale copies shadowing the release install earlier in PATH.
+while read -r found; do
+  [[ "$found" == "$TARGET" ]] && continue
+  echo "removing stale kata shadowing $TARGET: $found"
+  rm -f "$found"
+done < <(type -ap kata)
+
+# Graceful stop; the next client command auto-starts the new binary.
+"$TARGET" daemon stop >/dev/null 2>&1 || true
+echo "--------------------------------------------------"
+echo "Installed: $("$TARGET" version | head -1)"
+"$TARGET" daemon status || true
